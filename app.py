@@ -428,7 +428,7 @@ def ai_page():
 
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
-    """调用 DeepSeek API 聊天"""
+    """调用 DeepSeek API 聊天（支持图片、文件）"""
     email = session.get("email")
     if not email:
         return jsonify({"error": "未登录"}), 401
@@ -436,74 +436,88 @@ def api_chat():
     data = request.get_json()
     message = data.get("message", "")
     model = data.get("model", "deepseek-v4-flash")
-    # model = 模型（mao dou 茅斗）
-    # flash = 快速（fu la shi 弗拉石）
-    # pro = 专业版（pu ruo 普若）
+    system_prompt = data.get("system_prompt", "你是一个有用的AI助手，请用中文回答。")
+    images = data.get("images", [])  # base64 图片列表
+    files = data.get("files", [])    # 文件内容列表
 
     api_key = get_api_key(email)
     if not api_key:
         return jsonify({"error": "请先设置 API Key"}), 400
 
-    # 获取历史消息
-    history = get_chat_history(email, 50)
-
     # 构建 messages 列表
     messages = []
+
+    # 系统提示词
+    messages.append({"role": "system", "content": system_prompt})
+
+    # 历史消息
+    history = get_chat_history(email, 50)
     for msg in history:
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    messages.append({"role": "user", "content": message})
+    # 当前用户消息（可能包含图片和文件）
+    user_content = []
+
+    # 如果有文件，先加文件内容
+    for f in files:
+        user_content.append({
+            "type": "text",
+            "text": f"--- 文件：{f['name']} ---\n{f['content']}\n--- 文件结束 ---"
+        })
+
+    # 如果有图片，加图片
+    for img in images:
+        user_content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:{img['mime']};base64,{img['data']}"
+            }
+        })
+
+    # 用户输入的文字
+    if message:
+        user_content.append({"type": "text", "text": message})
+
+    # 如果只有文字，直接传字符串（兼容）
+    if len(user_content) == 1 and user_content[0]["type"] == "text":
+        messages.append({"role": "user", "content": user_content[0]["text"]})
+    elif user_content:
+        messages.append({"role": "user", "content": user_content})
 
     # 保存用户消息
-    save_chat_message(email, "user", message, model)
+    save_chat_message(email, "user", message or "(图片/文件)", model)
 
     try:
-        # 调用 DeepSeek API
-        # headers = 请求头（hai de si 海德斯）
         headers = {
             "Authorization": f"Bearer {api_key}",
-            # Bearer = 持有者（bei re re 贝热热）
             "Content-Type": "application/json"
         }
-
         payload = {
             "model": model,
             "messages": messages,
             "stream": False
-            # stream = 流式输出（si de rui mu 斯德瑞姆）
         }
 
-        response = requests.post(DEEPSEEK_URL, headers=headers, json=payload, timeout=60)
-        # response = 响应（rui si pao en si 瑞斯泡恩si）
-        # requests.post = 发送 POST 请求
-        # timeout = 超时（tai mao te 太毛特）
-
+        response = requests.post(DEEPSEEK_URL, headers=headers, json=payload, timeout=120)
         result = response.json()
-        # json = JSON 格式
 
         if "choices" not in result:
             return jsonify({"error": f"API 错误：{result}"}), 500
 
         choice = result["choices"][0]
-        # choice = 选择（chao yi si 超伊斯）
-
         reply = choice["message"]["content"]
-        # reply = 回复（rui pu lai 瑞普来）
-        # content = 内容（ken ten te 肯ten特）
-
         reasoning = choice["message"].get("reasoning")
-        # reasoning = 推理内容（深度思考模式下有）
 
         # 保存 AI 回复
         save_chat_message(email, "assistant", reply, model, reasoning)
 
         return jsonify({
             "reply": reply,
-            "reasoning": reasoning
+            "reasoning": reasoning,
+            "usage": result.get("usage")
         })
 
     except Exception as e:
-        # exception = 异常（ai ke sai pu shen 埃克赛普申）
         return jsonify({"error": f"请求失败：{str(e)}"}), 500
 
 

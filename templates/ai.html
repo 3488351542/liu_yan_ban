@@ -9,21 +9,19 @@
         body {
             font-family: "Microsoft YaHei", Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            min-height: 100vh; padding: 20px;
         }
         .container {
-            max-width: 750px; margin: 0 auto;
+            max-width: 800px; margin: 0 auto;
             background: white; border-radius: 16px;
             padding: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            min-height: 90vh;
-            display: flex; flex-direction: column;
+            min-height: 90vh; display: flex; flex-direction: column;
         }
 
         /* ===== 顶部 ===== */
         .top-bar {
-            display: flex; align-items: center;
-            justify-content: space-between; margin-bottom: 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 12px;
         }
         .top-bar h1 { font-size: 22px; color: #333; }
         .top-bar a {
@@ -33,89 +31,127 @@
         }
         .top-bar a:hover { background: #e0e0e0; }
 
-        /* ===== API Key 设置 ===== */
+        /* ===== API Key ===== */
         .api-section {
             background: #f8f9ff; border-radius: 10px;
-            padding: 15px; margin-bottom: 15px;
+            padding: 12px 15px; margin-bottom: 10px;
         }
-        .api-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .api-row { display: flex; gap: 8px; margin-bottom: 6px; }
         .api-row input {
-            flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0;
-            border-radius: 6px; font-size: 14px; outline: none;
+            flex: 1; padding: 7px 12px; border: 2px solid #e0e0e0;
+            border-radius: 6px; font-size: 13px; outline: none;
         }
         .api-row input:focus { border-color: #667eea; }
         .api-row button {
-            padding: 8px 16px; background: #667eea; color: white;
+            padding: 7px 16px; background: #667eea; color: white;
             border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
         }
-        .api-row button:hover { background: #5a6fd6; }
-        .api-link {
-            font-size: 12px; color: #667eea;
-        }
+        .api-link { font-size: 12px; color: #667eea; }
         .api-link a { color: #667eea; }
-        .api-status {
-            font-size: 12px; color: #27ae60; margin-top: 4px;
+        .api-status { font-size: 12px; color: #27ae60; }
+
+        /* ===== 高级设置折叠 ===== */
+        .toggle-advanced {
+            font-size: 13px; color: #667eea; cursor: pointer;
+            padding: 6px 0; display: inline-block;
         }
+        .toggle-advanced:hover { text-decoration: underline; }
+        .advanced-section {
+            display: none; background: #f8f9ff; border-radius: 10px;
+            padding: 12px 15px; margin-bottom: 10px;
+        }
+        .advanced-section.show { display: block; }
+        .adv-row { margin-bottom: 8px; }
+        .adv-row label {
+            display: block; font-size: 12px; color: #555;
+            margin-bottom: 3px; font-weight: bold;
+        }
+        .adv-row textarea, .adv-row input {
+            width: 100%; padding: 7px 10px;
+            border: 2px solid #e0e0e0; border-radius: 6px;
+            font-size: 13px; outline: none; resize: vertical;
+        }
+        .adv-row textarea:focus, .adv-row input:focus { border-color: #667eea; }
+        .adv-row textarea { min-height: 50px; font-family: inherit; }
 
         /* ===== 模型切换 ===== */
         .model-bar {
-            display: flex; align-items: center; gap: 15px;
-            margin-bottom: 15px; padding-bottom: 12px;
-            border-bottom: 1px solid #f0f0f0;
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 10px; padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0; flex-wrap: wrap;
         }
         .model-bar label { font-size: 13px; color: #666; cursor: pointer; }
-        .model-bar input[type="checkbox"] { margin-right: 4px; cursor: pointer; }
-        .model-name {
-            font-size: 12px; color: #999;
+        .model-name { font-size: 12px; color: #999; }
+        .btn-clear, .btn-upload {
+            padding: 5px 12px; background: #f0f0f0; border: none;
+            border-radius: 6px; color: #999; cursor: pointer; font-size: 12px;
         }
-        .btn-clear {
-            margin-left: auto; padding: 5px 12px;
-            background: #f0f0f0; border: none; border-radius: 6px;
-            color: #999; cursor: pointer; font-size: 12px;
+        .btn-clear:hover, .btn-upload:hover { background: #e0e0e0; color: #666; }
+        .file-info {
+            font-size: 12px; color: #667eea; padding: 4px 8px;
+            background: #f0f2ff; border-radius: 4px; display: none;
         }
-        .btn-clear:hover { background: #e0e0e0; color: #666; }
 
         /* ===== 对话区 ===== */
         .chat-box {
-            flex: 1; overflow-y: auto; padding: 10px 0;
-            min-height: 300px; max-height: 500px;
+            flex: 1; overflow-y: auto; padding: 8px 0;
+            min-height: 250px; max-height: 450px;
         }
         .msg {
-            margin-bottom: 16px; padding: 12px 15px;
+            margin-bottom: 14px; padding: 10px 14px;
             border-radius: 10px; line-height: 1.6;
         }
-        .msg-user {
-            background: #f0f2ff; margin-left: 40px;
+        .msg-user { background: #f0f2ff; margin-left: 30px; }
+        .msg-ai { background: #f8f9ff; margin-right: 30px; }
+        .msg .label {
+            font-size: 12px; font-weight: bold; margin-bottom: 4px;
         }
-        .msg-user .label { color: #667eea; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
-        .msg-ai {
-            background: #f8f9ff; margin-right: 40px;
-        }
-        .msg-ai .label { color: #764ba2; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .msg-user .label { color: #667eea; }
+        .msg-ai .label { color: #764ba2; }
         .msg .content { font-size: 14px; color: #333; white-space: pre-wrap; }
+        .msg .time-info { font-size: 11px; color: #bbb; font-weight: normal; }
 
         /* 深度思考内容 */
         .reasoning-box {
             background: #fff8e1; border-radius: 6px;
-            padding: 10px; margin-bottom: 8px; font-size: 13px;
-            color: #b8860b; border-left: 3px solid #ffc107;
+            padding: 8px 10px; margin-bottom: 6px;
+            font-size: 13px; color: #b8860b;
+            border-left: 3px solid #ffc107;
         }
-        .reasoning-box .label { font-weight: bold; font-size: 12px; margin-bottom: 4px; }
+        .reasoning-box .label { font-weight: bold; font-size: 12px; margin-bottom: 3px; }
 
-        .empty-chat {
-            text-align: center; color: #ccc; padding: 60px 0;
+        /* 图片预览 */
+        .img-preview {
+            max-width: 200px; max-height: 200px;
+            border-radius: 6px; margin-top: 6px;
+            border: 1px solid #e0e0e0;
         }
+
+        /* 空白提示 */
+        .empty-chat { text-align: center; color: #ccc; padding: 50px 0; }
 
         /* ===== 输入区 ===== */
+        .input-area {
+            margin-top: 12px; padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .input-tools {
+            display: flex; gap: 6px; margin-bottom: 6px;
+        }
+        .tool-btn {
+            padding: 5px 10px; background: #f0f0f0; border: none;
+            border-radius: 6px; color: #666; cursor: pointer;
+            font-size: 12px; transition: all 0.2s;
+        }
+        .tool-btn:hover { background: #e0e0e0; color: #333; }
         .input-bar {
-            display: flex; gap: 8px; margin-top: 15px;
-            padding-top: 12px; border-top: 1px solid #f0f0f0;
+            display: flex; gap: 8px;
         }
         .input-bar textarea {
             flex: 1; padding: 10px 14px;
             border: 2px solid #e0e0e0; border-radius: 8px;
             font-size: 14px; outline: none; resize: none;
-            height: 50px; transition: border-color 0.3s;
+            height: 50px;
         }
         .input-bar textarea:focus { border-color: #667eea; }
         .btn-send {
@@ -123,17 +159,18 @@
             color: white; border: none; border-radius: 8px;
             font-size: 15px; cursor: pointer; font-weight: bold;
         }
-        .btn-send:hover { opacity: 0.9; }
         .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error-msg { color: #e74c3c; text-align: center; font-size: 13px; padding: 6px; }
 
         /* ===== 加载 ===== */
-        .loading {
-            text-align: center; color: #999; padding: 20px;
-            font-size: 14px;
+        .loading-dots::after {
+            content: ''; animation: dots 1.5s infinite;
         }
-        .error-msg {
-            color: #e74c3c; text-align: center; padding: 10px;
-            font-size: 13px;
+        @keyframes dots {
+            0% { content: ''; }
+            33% { content: '.'; }
+            66% { content: '..'; }
+            100% { content: '...'; }
         }
     </style>
 </head>
@@ -142,12 +179,10 @@
         <!-- 顶部 -->
         <div class="top-bar">
             <h1>🤖 AI 助手</h1>
-            <div>
-                <a href="/">← 留言板</a>
-            </div>
+            <a href="/">← 留言板</a>
         </div>
 
-        <!-- API Key 设置 -->
+        <!-- API Key -->
         <div class="api-section">
             <form action="/ai" method="POST" class="api-row">
                 <input type="password" name="api_key" id="api_key"
@@ -156,21 +191,46 @@
                 <button type="submit">保存</button>
             </form>
             <div class="api-link">
-                🔗 <a href="https://platform.deepseek.com/api_keys" target="_blank">点此获取 DeepSeek API Key</a>
-                （首次注册送 500 万 token）
+                🔗 <a href="https://platform.deepseek.com/api_keys" target="_blank">获取 API Key</a>
+                （注册送 500 万 token）
             </div>
             {% if api_key %}
             <div class="api-status">✅ API Key 已设置</div>
             {% endif %}
         </div>
 
+        <!-- 高级设置折叠 -->
+        <div class="toggle-advanced" onclick="toggleAdvanced()">⚙️ 高级设置</div>
+        <div class="advanced-section" id="advancedSection">
+            <div class="adv-row">
+                <label>系统提示词（system prompt = si si tem pu ran pu te 西斯藤普让普特）
+                    <br><span style="color:#999;font-weight:normal;">告诉 AI 它的角色和行为方式</span>
+                </label>
+                <textarea id="systemPrompt" placeholder="例：你是一个友好的助手，请用中文回答">你是一个有用的AI助手，请用中文回答。</textarea>
+            </div>
+            <div class="adv-row">
+                <label>温度（temperature = 谈普瑞彻，值越高回答越随机，0-2，默认 0.7）</label>
+                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7"
+                       oninput="document.getElementById('tempVal').textContent=this.value">
+                <span id="tempVal" style="font-size:12px;color:#667eea;">0.7</span>
+            </div>
+            <div class="adv-row">
+                <label>最大 Token 数（max tokens = 最大回复长度）</label>
+                <input type="number" id="maxTokens" value="4096" min="64" max="32768" style="width:120px;">
+            </div>
+        </div>
+
         <!-- 模型切换 -->
         <div class="model-bar">
             <label>
                 <input type="checkbox" id="deepThink">
-                🧠 深度思考（deepseek-v4-pro）
+                🧠 深度思考（v4-pro）
             </label>
-            <span class="model-name">当前：<span id="currentModel">deepseek-v4-flash</span></span>
+            <span class="model-name" id="currentModel">deepseek-v4-flash</span>
+            <span class="file-info" id="fileInfo">📎 0 个文件</span>
+            <button class="btn-upload" onclick="document.getElementById('fileInput').click()">📎 上传文件/图片</button>
+            <input type="file" id="fileInput" multiple style="display:none"
+                   accept=".txt,.py,.js,.html,.css,.md,.json,.csv,.xml,.jpg,.jpeg,.png,.gif,.bmp,.pdf">
             <button class="btn-clear" onclick="clearHistory()">🗑️ 清空对话</button>
         </div>
 
@@ -178,12 +238,14 @@
         <div class="chat-box" id="chatBox">
             {% if history %}
                 {% for msg in history %}
-                    <div class="msg {% if msg.role == 'user' %}msg-user{% else %}msg-ai{% endif %}">
+                    <div class="msg {% if msg.role == 'user' %}msg-user{% else %}msg-ai{% endif %}" id="msg-{{ msg.id }}">
                         <div class="label">
                             {% if msg.role == 'user' %}👤 你{% else %}🤖 AI{% endif %}
-                            <span style="font-weight:normal;color:#bbb;font-size:11px;">
-                                {{ msg.model }} · {{ msg.created_at }}
-                            </span>
+                            <span class="time-info">{{ msg.model }} · {{ msg.created_at }}</span>
+                            {% if msg.role == 'assistant' %}
+                            <span style="cursor:pointer;font-size:11px;color:#999;margin-left:6px;"
+                                  onclick="copyMsg('msg-{{ msg.id }}')">📋 复制</span>
+                            {% endif %}
                         </div>
                         {% if msg.reasoning %}
                         <div class="reasoning-box">
@@ -200,26 +262,37 @@
         </div>
 
         <!-- 输入区 -->
-        <div class="input-bar">
-            <textarea id="msgInput" placeholder="输入消息..." rows="1"
-                      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
-            <button class="btn-send" id="sendBtn" onclick="send()">发送</button>
+        <div class="input-area">
+            <div class="input-tools">
+                <span style="font-size:12px;color:#999;">已上传：</span>
+                <span id="fileList" style="font-size:12px;color:#667eea;">无</span>
+            </div>
+            <div class="input-bar">
+                <textarea id="msgInput" placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
+                          rows="1"
+                          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+                <button class="btn-send" id="sendBtn" onclick="send()">发送</button>
+            </div>
+            <div id="errorMsg" class="error-msg"></div>
+            <!-- token 用量统计 -->
+            <div id="usageInfo" style="font-size:11px;color:#ccc;text-align:right;margin-top:4px;"></div>
         </div>
-        <div id="errorMsg" class="error-msg"></div>
     </div>
 
-    <script>
-    // model = 模型（mao dou 茅斗）
-    // flash = 快速（fu la shi 弗拉石）
-    // pro = 专业版（pu ruo 普若）
+    <!-- 隐藏的图片预览区域 -->
+    <div id="previewArea" style="display:none;"></div>
 
+    <script>
+    // ===== 全局变量 =====
+    var uploadedFiles = [];  // 上传的文件列表
+    var uploadedImages = []; // 上传的图片列表
+
+    // ===== 模型切换 =====
     var deepThink = document.getElementById("deepThink");
     var currentModel = document.getElementById("currentModel");
 
-    // 深度思考开关
     deepThink.addEventListener("change", function() {
         // addEventListener = 添加事件监听
-        // change = 改变时触发
         if (deepThink.checked) {
             currentModel.textContent = "deepseek-v4-pro";
         } else {
@@ -227,12 +300,75 @@
         }
     });
 
-    // 发送消息
+    // ===== 高级设置折叠 =====
+    function toggleAdvanced() {
+        var section = document.getElementById("advancedSection");
+        section.classList.toggle("show");
+    }
+
+    // ===== 文件上传 =====
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+        var files = e.target.files;
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            var reader = new FileReader();
+            // FileReader = 文件读取器
+
+            // 判断是图片还是文本文件
+            if (file.type.startsWith("image/")) {
+                // 图片文件
+                reader.onload = function(ev) {
+                    var base64 = ev.target.result.split(",")[1];
+                    var mime = file.type;
+                    uploadedImages.push({
+                        name: file.name,
+                        data: base64,
+                        mime: mime
+                    });
+                    updateFileInfo();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // 文本文件
+                reader.onload = function(ev) {
+                    uploadedFiles.push({
+                        name: file.name,
+                        content: ev.target.result
+                    });
+                    updateFileInfo();
+                };
+                reader.readAsText(file);
+            }
+        }
+        // 重置 input 以便重复上传同名的文件
+        this.value = "";
+    });
+
+    function updateFileInfo() {
+        var fileCount = uploadedFiles.length + uploadedImages.length;
+        var info = document.getElementById("fileInfo");
+        var list = document.getElementById("fileList");
+
+        if (fileCount > 0) {
+            info.style.display = "inline-block";
+            info.textContent = "📎 " + fileCount + " 个文件";
+
+            var names = [];
+            uploadedFiles.forEach(function(f) { names.push(f.name); });
+            uploadedImages.forEach(function(f) { names.push(f.name + " [图片]"); });
+            list.textContent = names.join(", ");
+        } else {
+            info.style.display = "none";
+            list.textContent = "无";
+        }
+    }
+
+    // ===== 发送消息 =====
     function send() {
         var input = document.getElementById("msgInput");
         var message = input.value.trim();
 
-        if (!message) return;
+        if (!message && uploadedFiles.length === 0 && uploadedImages.length === 0) return;
 
         var apiKey = document.getElementById("api_key").value;
         if (!apiKey) {
@@ -246,32 +382,42 @@
         document.getElementById("errorMsg").textContent = "";
 
         var model = deepThink.checked ? "deepseek-v4-pro" : "deepseek-v4-flash";
+        var systemPrompt = document.getElementById("systemPrompt").value || "你是一个有用的AI助手。";
+        var temperature = parseFloat(document.getElementById("temperature").value) || 0.7;
+        var maxTokens = parseInt(document.getElementById("maxTokens").value) || 4096;
 
-        // 先显示用户消息
-        addMessage("user", message, model);
+        // 显示用户消息
+        var displayText = message || "(文件/图片)";
+        if (uploadedImages.length > 0) displayText += " [" + uploadedImages.length + "张图片]";
+        if (uploadedFiles.length > 0) displayText += " [" + uploadedFiles.length + "个文件]";
+        addMessage("user", displayText, model);
 
-        // 添加 AI 思考中
+        // AI 思考中
         var loadingDiv = document.createElement("div");
         loadingDiv.className = "msg msg-ai";
-        loadingDiv.innerHTML = '<div class="label">🤖 AI <span class="loading">思考中...</span></div>';
+        loadingDiv.innerHTML = '<div class="label">🤖 AI <span class="loading-dots">思考中</span></div>';
         loadingDiv.id = "loadingMsg";
         document.getElementById("chatBox").appendChild(loadingDiv);
         scrollToBottom();
 
         input.value = "";
 
-        // fetch = 发送请求（fei chi 飞奇）
+        // 发请求
         fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 message: message,
-                model: model
+                model: model,
+                system_prompt: systemPrompt,
+                images: uploadedImages,
+                files: uploadedFiles,
+                temperature: temperature,
+                max_tokens: maxTokens
             })
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-            // 移除 loading
             var loading = document.getElementById("loadingMsg");
             if (loading) loading.remove();
 
@@ -280,8 +426,21 @@
                 return;
             }
 
-            // 显示 AI 回复
             addMessage("assistant", data.reply, model, data.reasoning);
+
+            // 显示 token 用量
+            if (data.usage) {
+                var usage = data.usage;
+                document.getElementById("usageInfo").textContent =
+                    "Token 用量：输入 " + (usage.prompt_tokens || 0) +
+                    " · 输出 " + (usage.completion_tokens || 0) +
+                    " · 总计 " + (usage.total_tokens || 0);
+            }
+
+            // 上传成功后清除文件列表
+            uploadedFiles = [];
+            uploadedImages = [];
+            updateFileInfo();
         })
         .catch(function(err) {
             var loading = document.getElementById("loadingMsg");
@@ -294,26 +453,31 @@
         });
     }
 
+    // ===== 添加消息到界面 =====
     function addMessage(role, content, model, reasoning) {
-        // role = 角色（rou ou 肉欧）
         var box = document.getElementById("chatBox");
-
-        // 移除空提示
         var empty = box.querySelector(".empty-chat");
         if (empty) empty.remove();
 
         var div = document.createElement("div");
         div.className = "msg " + (role === "user" ? "msg-user" : "msg-ai");
+        var id = "msg-" + Date.now();
+        div.id = id;
 
         var html = "";
         if (role === "user") {
             html += '<div class="label">👤 你</div>';
         } else {
-            html += '<div class="label">🤖 AI <span style="font-weight:normal;color:#bbb;font-size:11px;">' + model + '</span></div>';
+            html += '<div class="label">🤖 AI <span class="time-info">' +
+                    model + '</span>' +
+                    '<span style="cursor:pointer;font-size:11px;color:#999;margin-left:6px;"' +
+                    ' onclick="copyMsg(\'' + id + '\')">📋 复制</span>' +
+                    '</div>';
         }
 
         if (reasoning) {
-            html += '<div class="reasoning-box"><div class="label">🧠 深度思考：</div>' + escapeHtml(reasoning) + '</div>';
+            html += '<div class="reasoning-box"><div class="label">🧠 深度思考：</div>' +
+                    escapeHtml(reasoning) + '</div>';
         }
 
         html += '<div class="content">' + escapeHtml(content) + '</div>';
@@ -322,22 +486,26 @@
         scrollToBottom();
     }
 
-    function escapeHtml(text) {
-        // escape = 转义（yi si kei pu 伊斯科普）
-        // 防止特殊字符破坏页面
-        var div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
+    // ===== 复制消息 =====
+    function copyMsg(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var content = el.querySelector(".content");
+        if (!content) return;
+
+        // 临时创建 textarea 复制
+        var ta = document.createElement("textarea");
+        ta.value = content.textContent.trim();
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        alert("已复制");
     }
 
-    function scrollToBottom() {
-        var box = document.getElementById("chatBox");
-        box.scrollTop = box.scrollHeight;
-    }
-
+    // ===== 清空历史 =====
     function clearHistory() {
         if (!confirm("确认清空所有对话历史？")) return;
-
         fetch("/api/chat/clear", { method: "POST" })
         .then(function(res) { return res.json(); })
         .then(function(data) {
@@ -346,6 +514,17 @@
                     '<div class="empty-chat">💬 发送一条消息开始对话</div>';
             }
         });
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function scrollToBottom() {
+        var box = document.getElementById("chatBox");
+        box.scrollTop = box.scrollHeight;
     }
 
     // 页面加载后滚动到底部
