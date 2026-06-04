@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 助手 - 留言板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 750px; margin: 0 auto;
+            background: white; border-radius: 16px;
+            padding: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            min-height: 90vh;
+            display: flex; flex-direction: column;
+        }
+
+        /* ===== 顶部 ===== */
+        .top-bar {
+            display: flex; align-items: center;
+            justify-content: space-between; margin-bottom: 15px;
+        }
+        .top-bar h1 { font-size: 22px; color: #333; }
+        .top-bar a {
+            padding: 8px 16px; background: #f0f0f0;
+            border-radius: 8px; text-decoration: none;
+            color: #666; font-size: 13px;
+        }
+        .top-bar a:hover { background: #e0e0e0; }
+
+        /* ===== API Key 设置 ===== */
+        .api-section {
+            background: #f8f9ff; border-radius: 10px;
+            padding: 15px; margin-bottom: 15px;
+        }
+        .api-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .api-row input {
+            flex: 1; padding: 8px 12px; border: 2px solid #e0e0e0;
+            border-radius: 6px; font-size: 14px; outline: none;
+        }
+        .api-row input:focus { border-color: #667eea; }
+        .api-row button {
+            padding: 8px 16px; background: #667eea; color: white;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+        }
+        .api-row button:hover { background: #5a6fd6; }
+        .api-link {
+            font-size: 12px; color: #667eea;
+        }
+        .api-link a { color: #667eea; }
+        .api-status {
+            font-size: 12px; color: #27ae60; margin-top: 4px;
+        }
+
+        /* ===== 模型切换 ===== */
+        .model-bar {
+            display: flex; align-items: center; gap: 15px;
+            margin-bottom: 15px; padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .model-bar label { font-size: 13px; color: #666; cursor: pointer; }
+        .model-bar input[type="checkbox"] { margin-right: 4px; cursor: pointer; }
+        .model-name {
+            font-size: 12px; color: #999;
+        }
+        .btn-clear {
+            margin-left: auto; padding: 5px 12px;
+            background: #f0f0f0; border: none; border-radius: 6px;
+            color: #999; cursor: pointer; font-size: 12px;
+        }
+        .btn-clear:hover { background: #e0e0e0; color: #666; }
+
+        /* ===== 对话区 ===== */
+        .chat-box {
+            flex: 1; overflow-y: auto; padding: 10px 0;
+            min-height: 300px; max-height: 500px;
+        }
+        .msg {
+            margin-bottom: 16px; padding: 12px 15px;
+            border-radius: 10px; line-height: 1.6;
+        }
+        .msg-user {
+            background: #f0f2ff; margin-left: 40px;
+        }
+        .msg-user .label { color: #667eea; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .msg-ai {
+            background: #f8f9ff; margin-right: 40px;
+        }
+        .msg-ai .label { color: #764ba2; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        .msg .content { font-size: 14px; color: #333; white-space: pre-wrap; }
+
+        /* 深度思考内容 */
+        .reasoning-box {
+            background: #fff8e1; border-radius: 6px;
+            padding: 10px; margin-bottom: 8px; font-size: 13px;
+            color: #b8860b; border-left: 3px solid #ffc107;
+        }
+        .reasoning-box .label { font-weight: bold; font-size: 12px; margin-bottom: 4px; }
+
+        .empty-chat {
+            text-align: center; color: #ccc; padding: 60px 0;
+        }
+
+        /* ===== 输入区 ===== */
+        .input-bar {
+            display: flex; gap: 8px; margin-top: 15px;
+            padding-top: 12px; border-top: 1px solid #f0f0f0;
+        }
+        .input-bar textarea {
+            flex: 1; padding: 10px 14px;
+            border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; outline: none; resize: none;
+            height: 50px; transition: border-color 0.3s;
+        }
+        .input-bar textarea:focus { border-color: #667eea; }
+        .btn-send {
+            padding: 0 24px; background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 8px;
+            font-size: 15px; cursor: pointer; font-weight: bold;
+        }
+        .btn-send:hover { opacity: 0.9; }
+        .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ===== 加载 ===== */
+        .loading {
+            text-align: center; color: #999; padding: 20px;
+            font-size: 14px;
+        }
+        .error-msg {
+            color: #e74c3c; text-align: center; padding: 10px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部 -->
+        <div class="top-bar">
+            <h1>🤖 AI 助手</h1>
+            <div>
+                <a href="/">← 留言板</a>
+            </div>
+        </div>
+
+        <!-- API Key 设置 -->
+        <div class="api-section">
+            <form action="/ai" method="POST" class="api-row">
+                <input type="password" name="api_key" id="api_key"
+                       placeholder="输入 DeepSeek API Key"
+                       value="{{ api_key or '' }}">
+                <button type="submit">保存</button>
+            </form>
+            <div class="api-link">
+                🔗 <a href="https://platform.deepseek.com/api_keys" target="_blank">点此获取 DeepSeek API Key</a>
+                （首次注册送 500 万 token）
+            </div>
+            {% if api_key %}
+            <div class="api-status">✅ API Key 已设置</div>
+            {% endif %}
+        </div>
+
+        <!-- 模型切换 -->
+        <div class="model-bar">
+            <label>
+                <input type="checkbox" id="deepThink">
+                🧠 深度思考（deepseek-v4-pro）
+            </label>
+            <span class="model-name">当前：<span id="currentModel">deepseek-v4-flash</span></span>
+            <button class="btn-clear" onclick="clearHistory()">🗑️ 清空对话</button>
+        </div>
+
+        <!-- 对话区 -->
+        <div class="chat-box" id="chatBox">
+            {% if history %}
+                {% for msg in history %}
+                    <div class="msg {% if msg.role == 'user' %}msg-user{% else %}msg-ai{% endif %}">
+                        <div class="label">
+                            {% if msg.role == 'user' %}👤 你{% else %}🤖 AI{% endif %}
+                            <span style="font-weight:normal;color:#bbb;font-size:11px;">
+                                {{ msg.model }} · {{ msg.created_at }}
+                            </span>
+                        </div>
+                        {% if msg.reasoning %}
+                        <div class="reasoning-box">
+                            <div class="label">🧠 深度思考：</div>
+                            {{ msg.reasoning }}
+                        </div>
+                        {% endif %}
+                        <div class="content">{{ msg.content }}</div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-chat">💬 发送一条消息开始对话</div>
+            {% endif %}
+        </div>
+
+        <!-- 输入区 -->
+        <div class="input-bar">
+            <textarea id="msgInput" placeholder="输入消息..." rows="1"
+                      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send();}"></textarea>
+            <button class="btn-send" id="sendBtn" onclick="send()">发送</button>
+        </div>
+        <div id="errorMsg" class="error-msg"></div>
+    </div>
+
+    <script>
+    // model = 模型（mao dou 茅斗）
+    // flash = 快速（fu la shi 弗拉石）
+    // pro = 专业版（pu ruo 普若）
+
+    var deepThink = document.getElementById("deepThink");
+    var currentModel = document.getElementById("currentModel");
+
+    // 深度思考开关
+    deepThink.addEventListener("change", function() {
+        // addEventListener = 添加事件监听
+        // change = 改变时触发
+        if (deepThink.checked) {
+            currentModel.textContent = "deepseek-v4-pro";
+        } else {
+            currentModel.textContent = "deepseek-v4-flash";
+        }
+    });
+
+    // 发送消息
+    function send() {
+        var input = document.getElementById("msgInput");
+        var message = input.value.trim();
+
+        if (!message) return;
+
+        var apiKey = document.getElementById("api_key").value;
+        if (!apiKey) {
+            document.getElementById("errorMsg").textContent = "请先设置 API Key";
+            return;
+        }
+
+        var btn = document.getElementById("sendBtn");
+        btn.disabled = true;
+        btn.textContent = "发送中...";
+        document.getElementById("errorMsg").textContent = "";
+
+        var model = deepThink.checked ? "deepseek-v4-pro" : "deepseek-v4-flash";
+
+        // 先显示用户消息
+        addMessage("user", message, model);
+
+        // 添加 AI 思考中
+        var loadingDiv = document.createElement("div");
+        loadingDiv.className = "msg msg-ai";
+        loadingDiv.innerHTML = '<div class="label">🤖 AI <span class="loading">思考中...</span></div>';
+        loadingDiv.id = "loadingMsg";
+        document.getElementById("chatBox").appendChild(loadingDiv);
+        scrollToBottom();
+
+        input.value = "";
+
+        // fetch = 发送请求（fei chi 飞奇）
+        fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: message,
+                model: model
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            // 移除 loading
+            var loading = document.getElementById("loadingMsg");
+            if (loading) loading.remove();
+
+            if (data.error) {
+                document.getElementById("errorMsg").textContent = data.error;
+                return;
+            }
+
+            // 显示 AI 回复
+            addMessage("assistant", data.reply, model, data.reasoning);
+        })
+        .catch(function(err) {
+            var loading = document.getElementById("loadingMsg");
+            if (loading) loading.remove();
+            document.getElementById("errorMsg").textContent = "请求失败：" + err;
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.textContent = "发送";
+        });
+    }
+
+    function addMessage(role, content, model, reasoning) {
+        // role = 角色（rou ou 肉欧）
+        var box = document.getElementById("chatBox");
+
+        // 移除空提示
+        var empty = box.querySelector(".empty-chat");
+        if (empty) empty.remove();
+
+        var div = document.createElement("div");
+        div.className = "msg " + (role === "user" ? "msg-user" : "msg-ai");
+
+        var html = "";
+        if (role === "user") {
+            html += '<div class="label">👤 你</div>';
+        } else {
+            html += '<div class="label">🤖 AI <span style="font-weight:normal;color:#bbb;font-size:11px;">' + model + '</span></div>';
+        }
+
+        if (reasoning) {
+            html += '<div class="reasoning-box"><div class="label">🧠 深度思考：</div>' + escapeHtml(reasoning) + '</div>';
+        }
+
+        html += '<div class="content">' + escapeHtml(content) + '</div>';
+        div.innerHTML = html;
+        box.appendChild(div);
+        scrollToBottom();
+    }
+
+    function escapeHtml(text) {
+        // escape = 转义（yi si kei pu 伊斯科普）
+        // 防止特殊字符破坏页面
+        var div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function scrollToBottom() {
+        var box = document.getElementById("chatBox");
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function clearHistory() {
+        if (!confirm("确认清空所有对话历史？")) return;
+
+        fetch("/api/chat/clear", { method: "POST" })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                document.getElementById("chatBox").innerHTML =
+                    '<div class="empty-chat">💬 发送一条消息开始对话</div>';
+            }
+        });
+    }
+
+    // 页面加载后滚动到底部
+    scrollToBottom();
+    </script>
+</body>
+</html>

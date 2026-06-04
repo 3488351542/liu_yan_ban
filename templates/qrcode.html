@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码 - 留言板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .box {
+            background: white; border-radius: 16px;
+            padding: 40px; width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        h1 { color: #333; font-size: 22px; margin-bottom: 8px; }
+        .desc { color: #999; font-size: 14px; margin-bottom: 25px; }
+        .qr-img {
+            width: 260px; height: 260px;
+            margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .qr-img img { max-width: 100%; max-height: 100%; }
+        .url {
+            color: #667eea; font-size: 13px; word-break: break-all;
+            margin-bottom: 25px; padding: 8px; background: #f8f9ff; border-radius: 6px;
+        }
+        .btn-back {
+            display: inline-block; padding: 10px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; text-decoration: none; border-radius: 8px;
+            font-size: 15px; transition: transform 0.2s;
+        }
+        .btn-back:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>📱 扫码访问</h1>
+        <p class="desc">微信扫描二维码，打开留言板</p>
+
+        <div class="qr-img">
+            <img src="{{ qr_data }}" alt="QR Code">
+        </div>
+
+        <div class="url">{{ url }}</div>
+
+        <a href="/" class="btn-back">← 返回留言板</a>
+    </div>
+</body>
+</html>
