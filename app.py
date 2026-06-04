@@ -40,6 +40,22 @@ def init_db():
             created_at timestamp default current_timestamp
         )
     """)
+
+    # 兼容旧数据库：删除旧的 users 表（如果字段不对的话），重建新的
+    # 因为之前有 phone、sms 等旧版本，表结构可能不对
+    try:
+        cursor.execute("select email from users limit 1")
+    except:
+        # users 表存在但没有 email 列，删了重建
+        cursor.execute("drop table if exists users")
+        cursor.execute("""
+            create table users (
+                id integer primary key autoincrement,
+                email text not null unique,
+                password text not null,
+                created_at timestamp default current_timestamp
+            )
+        """)
     conn.commit()
     conn.close()
 
