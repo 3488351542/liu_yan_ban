@@ -363,7 +363,7 @@
         }
     }
 
-    // ===== 发送消息 =====
+    // ===== 流式发送消息 =====
     function send() {
         var input = document.getElementById("msgInput");
         var message = input.value.trim();
@@ -392,18 +392,25 @@
         if (uploadedFiles.length > 0) displayText += " [" + uploadedFiles.length + "个文件]";
         addMessage("user", displayText, model);
 
-        // AI 思考中
-        var loadingDiv = document.createElement("div");
-        loadingDiv.className = "msg msg-ai";
-        loadingDiv.innerHTML = '<div class="label">🤖 AI <span class="loading-dots">思考中</span></div>';
-        loadingDiv.id = "loadingMsg";
-        document.getElementById("chatBox").appendChild(loadingDiv);
+        // 创建 AI 消息容器（先占位，流式内容逐步填充）
+        var aiDiv = document.createElement("div");
+        aiDiv.className = "msg msg-ai";
+        aiDiv.id = "ai-msg-" + Date.now();
+        aiDiv.innerHTML = '<div class="label">🤖 AI <span class="time-info">' + model + '</span></div>' +
+                          '<div class="reasoning-box" id="reason-' + aiDiv.id + '" style="display:none;">' +
+                          '<div class="label">🧠 深度思考：</div>' +
+                          '<div class="reasoning-content"></div></div>' +
+                          '<div class="content" id="content-' + aiDiv.id + '"></div>';
+        document.getElementById("chatBox").appendChild(aiDiv);
         scrollToBottom();
 
         input.value = "";
+        var contentDiv = document.getElementById("content-" + aiDiv.id);
+        var reasoningBox = document.getElementById("reason-" + aiDiv.id);
+        var reasoningContent = reasoningBox.querySelector(".reasoning-content");
 
-        // 发请求
-        fetch("/api/chat", {
+        // 流式读取
+        fetch("/api/chat/stream", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -416,38 +423,66 @@
                 max_tokens: maxTokens
             })
         })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            var loading = document.getElementById("loadingMsg");
-            if (loading) loading.remove();
+        .then(function(response) {
+            // reader = 读取器（rui de 瑞得）
+            var reader = response.body.getReader();
+            var decoder = new TextDecoder();
+            // decoder = 解码器（di kou de 迪扣得）
+            var buffer = "";
 
-            if (data.error) {
-                document.getElementById("errorMsg").textContent = data.error;
-                return;
+            function readStream() {
+                reader.read().then(function(result) {
+                    if (result.done) {
+                        // 流结束
+                        uploadedFiles = [];
+                        uploadedImages = [];
+                        updateFileInfo();
+                        btn.disabled = false;
+                        btn.textContent = "发送";
+                        return;
+                    }
+
+                    // 解码二进制数据
+                    buffer += decoder.decode(result.value, {stream: true});
+
+                    // 按行分割（SSE 格式：data: {...}\n\n）
+                    var lines = buffer.split("\n");
+                    buffer = lines.pop() || "";  // 最后一个可能不完整
+
+                    for (var i = 0; i < lines.length; i++) {
+                        var line = lines[i].trim();
+                        if (!line || !line.startsWith("data: ")) continue;
+
+                        var jsonStr = line.substring(6);
+                        try {
+                            var data = JSON.parse(jsonStr);
+                        } catch(e) { continue; }
+
+                        if (data.type === "reasoning") {
+                            // 深度思考内容
+                            reasoningBox.style.display = "block";
+                            reasoningContent.textContent += data.content;
+                            scrollToBottom();
+                        } else if (data.type === "content") {
+                            // 正式回复
+                            contentDiv.textContent += data.content;
+                            scrollToBottom();
+                        } else if (data.type === "error") {
+                            document.getElementById("errorMsg").textContent = "错误：" + data.content;
+                            btn.disabled = false;
+                            btn.textContent = "发送";
+                        }
+                        // done 类型不处理，由 result.done 触发
+                    }
+
+                    readStream();
+                });
             }
 
-            addMessage("assistant", data.reply, model, data.reasoning);
-
-            // 显示 token 用量
-            if (data.usage) {
-                var usage = data.usage;
-                document.getElementById("usageInfo").textContent =
-                    "Token 用量：输入 " + (usage.prompt_tokens || 0) +
-                    " · 输出 " + (usage.completion_tokens || 0) +
-                    " · 总计 " + (usage.total_tokens || 0);
-            }
-
-            // 上传成功后清除文件列表
-            uploadedFiles = [];
-            uploadedImages = [];
-            updateFileInfo();
+            readStream();
         })
         .catch(function(err) {
-            var loading = document.getElementById("loadingMsg");
-            if (loading) loading.remove();
             document.getElementById("errorMsg").textContent = "请求失败：" + err;
-        })
-        .finally(function() {
             btn.disabled = false;
             btn.textContent = "发送";
         });

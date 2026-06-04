@@ -2,7 +2,11 @@
 留言板完整版 - 管理员 + 回复 + 二维码 + DeepSeek AI
 """
 
-from flask import Flask, render_template, request, session, redirect, jsonify
+from flask import (Flask, render_template, request, session,
+                   redirect, jsonify, Response, stream_with_context)
+# Response = 响应（rui si pao en si 瑞斯泡恩si）
+# stream = 流（si de rui mu 斯德瑞姆）—— 一个字一个字输出
+# stream_with_context = 带上下文的流式输出
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -519,6 +523,130 @@ def api_chat():
 
     except Exception as e:
         return jsonify({"error": f"请求失败：{str(e)}"}), 500
+
+
+# ========== 流式输出聊天 ==========
+
+@app.route("/api/chat/stream", methods=["POST"])
+def api_chat_stream():
+    """流式调用 DeepSeek API，实时输出"""
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "未登录"}), 401
+
+    data = request.get_json()
+    message = data.get("message", "")
+    model = data.get("model", "deepseek-v4-flash")
+    system_prompt = data.get("system_prompt", "你是一个有用的AI助手，请用中文回答。")
+    images = data.get("images", [])
+    files = data.get("files", [])
+    temperature = data.get("temperature", 0.7)
+    max_tokens = data.get("max_tokens", 4096)
+
+    api_key = get_api_key(email)
+    if not api_key:
+        return jsonify({"error": "请先设置 API Key"}), 400
+
+    messages = []
+    messages.append({"role": "system", "content": system_prompt})
+
+    history = get_chat_history(email, 30)
+    for msg in history:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+
+    user_content = []
+    for f in files:
+        user_content.append({
+            "type": "text",
+            "text": f"--- 文件：{f['name']} ---\n{f['content']}\n--- 文件结束 ---"
+        })
+    for img in images:
+        user_content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:{img['mime']};base64,{img['data']}"}
+        })
+    if message:
+        user_content.append({"type": "text", "text": message})
+
+    if len(user_content) == 1 and user_content[0]["type"] == "text":
+        messages.append({"role": "user", "content": user_content[0]["text"]})
+    elif user_content:
+        messages.append({"role": "user", "content": user_content})
+    else:
+        return jsonify({"error": "消息不能为空"}), 400
+
+    save_chat_message(email, "user", message or "(图片/文件)", model)
+
+    def generate():
+        full_reply = ""
+        full_reasoning = ""
+
+        try:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": model,
+                "messages": messages,
+                "stream": True,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+
+            resp = requests.post(
+                DEEPSEEK_URL, headers=headers, json=payload,
+                stream=True, timeout=120
+            )
+
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                line_text = line.decode("utf-8")
+                if not line_text.startswith("data: "):
+                    continue
+                json_str = line_text[6:]
+                if json_str.strip() == "[DONE]":
+                    break
+
+                try:
+                    chunk = json.loads(json_str)
+                except:
+                    continue
+
+                choices = chunk.get("choices", [])
+                if not choices:
+                    continue
+
+                delta = choices[0].get("delta", {})
+
+                reasoning = delta.get("reasoning_content") or delta.get("reasoning")
+                if reasoning:
+                    full_reasoning += reasoning
+                    yield f"data: {json.dumps({'type': 'reasoning', 'content': reasoning})}\n\n"
+
+                content = delta.get("content", "")
+                if content:
+                    full_reply += content
+                    yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
+
+            if full_reply:
+                save_chat_message(email, "assistant", full_reply, model,
+                                full_reasoning if full_reasoning else None)
+
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @app.route("/api/chat/clear", methods=["POST"])
