@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<!-- DOCTYPE = 文档类型（dai ke men te 代词门特） -->
+<!-- html = 超文本标记语言（ei chi ti ai er 诶尺提艾尔） -->
+<html lang="zh-CN">
+<!-- lang = language = 语言（lang 浪） -->
+<head>
+<!-- head = 头部（hai de 海得）—— 放配置信息，不显示在页面上 -->
+    <meta charset="UTF-8">
+    <!-- meta = 元数据（mai ta 麦塔） -->
+    <!-- charset = 字符编码（cha set 查赛特）—— 告诉浏览器用什么编码 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- name = 名字（nei mu 内姆） -->
+    <!-- viewport = 视口（viu pao te 维乌泡特）—— 屏幕可见区域 -->
+    <!-- content = 内容（ken ten te 肯ten特） -->
+    <!-- width = 宽度（wei te si 威特斯） -->
+    <!-- device-width = 设备宽度（di wai si wei te si 迪外斯威特斯） -->
+    <!-- initial = 初始（i ni she 伊尼舍） -->
+    <!-- scale = 缩放（skei ou 斯给奥） -->
+    <title>留言板</title>
+    <!-- title = 标题（tai tou 太头）—— 浏览器标签页上显示的文字 -->
+
+    <style>
+    <!-- style = 样式（si tai er 斯太尔）—— CSS 代码写在这里 -->
+        /* ===== 全局样式 ===== */
+        /* global = 全局（gou rou 够肉） */
+        * {  /* * = 星号，选中页面上所有元素 */
+            margin: 0;          /* margin = 外边距（ma jin 马金） */
+            padding: 0;         /* padding = 内边距（pai ding 派丁） */
+            box-sizing: border-box;
+            /* box = 盒子（bai ke si 拜克斯） */
+            /* sizing = 尺寸计算（sai zing 赛zing） */
+            /* border = 边框（bo de 伯得） */
+            /* border-box = 边框也算在宽度里 */
+        }
+        body {
+        /* body = 身体（bo di 伯迪）—— 网页主体内容 */
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            /* font = 字体（fang te 方特） */
+            /* family = 家族（fa mi li 法米里）—— 字体类型 */
+            /* sans-serif = 无衬线字体（san se ri fu 三瑟瑞夫） */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            /* background = 背景（bai ke gua en de 百克挂恩得） */
+            /* linear = 线性的（li ni e 里尼厄） */
+            /* gradient = 渐变（grei di en te 格雷迪恩特） */
+            min-height: 100vh;
+            /* min = 最小值（min 民） */
+            /* height = 高度（hai te 海特） */
+            /* vh = viewport height = 视口高度（viu hao te 维乌浩特） */
+            padding: 40px 20px;
+        }
+        .container {
+        /* container = 容器（ken tei ne 肯忒呢）—— 装内容的盒子 */
+            max-width: 600px;
+            /* max = 最大值（mai ke si 迈克斯） */
+            margin: 0 auto;     /* margin: 0 auto = 水平居中 */
+            background: white;
+            border-radius: 16px;
+            /* radius = 半径（rei di e si 瑞迪厄斯）—— 圆角 */
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            /* shadow = 阴影（sha dou 沙斗） */
+        }
+        h1 {  /* h1 = heading 1 = 一级标题（hai ding 海丁） */
+            text-align: center;
+            /* text = 文本（tai ke si te 泰科斯特） */
+            /* align = 对齐（e lai en 额来恩） */
+            /* center = 居中（sen te 森特） */
+            color: #333;
+            font-size: 28px;     /* size = 大小（sai zi 赛子） */
+            margin-bottom: 8px;  /* bottom = 底部（ba tem 巴tenm） */
+        }
+        .subtitle {
+        /* subtitle = 子标题 / 副标题（sa bo tai tou 萨波太头） */
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        /* ===== 表单样式 ===== */
+        /* form = 表单（fo mu 佛姆）—— 用户填写的区域 */
+        .form-group {
+        /* group = 组（gu ru pu 古入普） */
+            margin-bottom: 15px;
+        }
+        .form-group label {
+        /* label = 标签（lei bou 雷伯）—— 字段的名字 */
+            display: block;
+            /* display = 显示方式（di si pu lei 迪斯普雷） */
+            /* block = 块（bu lao ke 布涝科）—— 独占一行 */
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: bold;
+            /* weight = 重量 / 粗细（wei te 威特） */
+            /* bold = 粗体（bou er de 伯尔得） */
+        }
+        .form-group input,
+        /* input = 输入框（yin pu te 因普特）—— 用户打字的地方 */
+        .form-group textarea {
+        /* textarea = text area = 文本区域（tai ke si te ai re i e 泰科斯特埃瑞厄） */
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            /* solid = 实线（sao li de 扫利的） */
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            /* outline = 轮廓（ao te lai en 奥特来恩）—— 点击输入框时的外框 */
+            /* none = 无（nan 南）—— 不要轮廓 */
+            transition: border-color 0.3s;
+            /* transition = 过渡（te lan zi shen 特兰兹申）—— 动画效果 */
+            /* color = 颜色（ka le 卡勒） */
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+        /* focus = 聚焦（fou ke si 佛克斯）—— 输入框被选中时 */
+            border-color: #667eea;
+        }
+        .form-group textarea {
+            height: 100px;      /* height = 高度（hai te 海特） */
+            resize: vertical;
+            /* resize = 调整大小（rui sai zi 瑞赛子） */
+            /* vertical = 垂直方向（ve ti kao 沃提考） */
+        }
+        .btn-submit {
+        /* btn = button = 按钮（ba ten 巴ten） */
+        /* submit = 提交（sa bo mi te 萨波密特） */
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            /* cursor = 光标（ke se 科瑟）—— 鼠标形状 */
+            /* pointer = 手指（po yin te 波因特）—— 变成手型 */
+            transition: transform 0.2s, box-shadow 0.2s;
+            /* transform = 变换（te lan si fo mu 特兰斯佛姆） */
+        }
+        .btn-submit:hover {
+        /* hover = 悬停（ha wo 哈沃）—— 鼠标放在上面时 */
+            transform: translateY(-2px);
+            /* translate = 平移（te lan si lei te 特兰斯雷特） */
+            /* Y = 垂直方向（wai 外） */
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* ===== 留言列表 ===== */
+        .messages {  /* messages = 留言们（mai sei zhi si 麦塞至斯） */
+            margin-top: 30px;  /* top = 顶部（tao pu 套普） */
+        }
+        .messages h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .message-card {
+        /* card = 卡片（ka de 卡得）—— 一条留言的盒子 */
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+            /* left = 左边（lei fu te 雷夫特） */
+        }
+        .message-card .username {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 15px;
+        }
+        .message-card .time {
+        /* time = 时间（tai mu 太姆） */
+            color: #bbb;
+            font-size: 12px;
+            float: right;
+            /* float = 浮动（fu lou te 弗漏特） */
+            /* right = 右边（ruai te 瑞埃特） */
+        }
+        .message-card .content {
+            color: #444;
+            margin-top: 8px;
+            line-height: 1.6;
+            /* line = 行（lai en 来恩） */
+            /* line-height = 行高 / 行间距 */
+            white-space: pre-wrap;
+            /* white = 白色（wai te 外特） */
+            /* space = 空白（si bei si 斯贝斯） */
+            /* pre-wrap = 保留换行和空格（pu rui rua pu 普瑞入阿普） */
+        }
+        .empty {
+        /* empty = 空的（ai mu ti 埃姆提）—— 没有留言时显示 */
+            text-align: center;
+            color: #ccc;
+            padding: 40px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <!-- div = division = 分区（di vi shen 迪维申）—— 盒子 -->
+        <h1>📋 留言板</h1>
+        <p class="subtitle">留下你想说的话</p>
+
+        <!-- 留言表单 -->
+        <!-- action = 动作（ai ke shen 埃克申）—— 提交到哪个网址 -->
+        <!-- /submit = 向 /submit 这个网址提交 -->
+        <!-- method = 方法（mai se de 麦瑟德） -->
+        <!-- POST = 提交方式（pou si te 剖斯特）—— 数据藏在请求体里，不显示在网址上 -->
+        <form action="/submit" method="POST">
+            <div class="form-group">
+                <label>你的名字</label>
+                <!-- type = 类型（tai pu 太普） -->
+                <!-- text = 文本（tai ke si te 泰科斯特） -->
+                <!-- name = 名称（nei mu 内姆）—— Python 用这个取值 -->
+                <!-- placeholder = 占位符（pu lei si hou de 普雷斯后的）—— 灰色提示文字 -->
+                <!-- required = 必填（rui kuai e de 瑞快厄得） -->
+                <input type="text" name="username" placeholder="请输入昵称" required>
+            </div>
+            <div class="form-group">
+                <label>留言内容</label>
+                <textarea name="content" placeholder="写点什么..." required></textarea>
+            </div>
+            <!-- type="submit" = 提交按钮 -->
+            <button type="submit" class="btn-submit">发布留言</button>
+        </form>
+
+        <!-- 留言列表 -->
+        <div class="messages">
+            <!-- messages|length = 留言数量 -->
+            <!-- | = 管道符号，在 Flask 里表示"对前面的变量做处理" -->
+            <!-- length = 长度 / 数量（lang si 浪斯） -->
+            <h2>💬 全部留言 ({{ messages|length }} 条)</h2>
+
+            {% if messages %}
+            <!-- if = 如果（yi fu 衣夫） -->
+            <!-- for = 循环（fo 佛）—— 对每条留言重复做下面的事 -->
+            <!-- msg = message = 单条留言（mai sei zhi 麦塞至） -->
+            <!-- in = 在...里面（yin 因） -->
+            {% for msg in messages %}
+                <div class="message-card">
+                    <span class="username">{{ msg.username }}</span>
+                    <!-- span = 跨度（si ban 斯班）—— 行内元素，不换行 -->
+                    <span class="time">{{ msg.created_at }}</span>
+                    <div class="content">{{ msg.content }}</div>
+                </div>
+            {% endfor %}
+            {% else %}
+            <!-- else = 否则（ai ou si 埃欧斯）—— 如果没有留言 -->
+                <div class="empty">还没有留言，快来第一条吧！</div>
+            {% endif %}
+            <!-- endif = if 结束 -->
+        </div>
+    </div>
+</body>
+</html>
