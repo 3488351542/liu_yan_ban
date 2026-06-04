@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <!-- login = 登录（lao gin 劳gin） -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 25px; font-size: 24px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block; font-size: 14px; color: #555;
+            margin-bottom: 5px; font-weight: bold;
+        }
+        .form-group input {
+            width: 100%; padding: 12px 15px;
+            border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 15px; outline: none; transition: border-color 0.3s;
+        }
+        .form-group input:focus { border-color: #667eea; }
+        .btn {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 8px;
+            font-size: 16px; cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .link { text-align: center; margin-top: 16px; font-size: 14px; }
+        .link a { color: #667eea; text-decoration: none; }
+        .link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🔐 登录</h1>
+
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label>邮箱（email = yi mei ou 伊梅欧）</label>
+                <input type="email" name="email" placeholder="输入邮箱" required>
+            </div>
+            <div class="form-group">
+                <label>密码（password = pa si wo de 帕斯沃得）</label>
+                <input type="password" name="password" placeholder="输入密码" required>
+            </div>
+            <button type="submit" class="btn">登录</button>
+        </form>
+
+        <div class="link">
+            没有账号？<a href="/register">去注册</a>
+        </div>
+    </div>
+</body>
+</html>

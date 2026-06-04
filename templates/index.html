@@ -62,20 +62,59 @@
         }
         h1 {  /* h1 = heading 1 = 一级标题（hai ding 海丁） */
             text-align: center;
-            /* text = 文本（tai ke si te 泰科斯特） */
-            /* align = 对齐（e lai en 额来恩） */
-            /* center = 居中（sen te 森特） */
             color: #333;
-            font-size: 28px;     /* size = 大小（sai zi 赛子） */
-            margin-bottom: 8px;  /* bottom = 底部（ba tem 巴tenm） */
+            font-size: 28px;
+            margin-bottom: 4px;
         }
         .subtitle {
-        /* subtitle = 子标题 / 副标题（sa bo tai tou 萨波太头） */
             text-align: center;
             color: #999;
             font-size: 14px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
+        .header-bar { margin-bottom: 20px; }
+        .user-bar {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .user-info { color: #667eea; font-weight: bold; margin-right: 10px; }
+        .btn-login, .btn-register, .btn-logout {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .btn-login {
+            background: #667eea;
+            color: white;
+            margin-right: 6px;
+        }
+        .btn-login:hover { background: #5a6fd6; }
+        .btn-register {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .btn-register:hover { background: #f0f2ff; }
+        .btn-logout {
+            background: #f0f0f0;
+            color: #999;
+            border: none;
+        }
+        .btn-logout:hover { background: #e0e0e0; color: #666; }
+        .login-tip {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .login-tip a { color: #667eea; font-weight: bold; text-decoration: none; }
+        .login-tip a:hover { text-decoration: underline; }
 
         /* ===== 表单样式 ===== */
         /* form = 表单（fo mu 佛姆）—— 用户填写的区域 */
@@ -203,31 +242,39 @@
 <body>
     <div class="container">
     <!-- div = division = 分区（di vi shen 迪维申）—— 盒子 -->
-        <h1>📋 留言板</h1>
-        <p class="subtitle">留下你想说的话</p>
-
-        <!-- 留言表单 -->
-        <!-- action = 动作（ai ke shen 埃克申）—— 提交到哪个网址 -->
-        <!-- /submit = 向 /submit 这个网址提交 -->
-        <!-- method = 方法（mai se de 麦瑟德） -->
-        <!-- POST = 提交方式（pou si te 剖斯特）—— 数据藏在请求体里，不显示在网址上 -->
-        <form action="/submit" method="POST">
-            <div class="form-group">
-                <label>你的名字</label>
-                <!-- type = 类型（tai pu 太普） -->
-                <!-- text = 文本（tai ke si te 泰科斯特） -->
-                <!-- name = 名称（nei mu 内姆）—— Python 用这个取值 -->
-                <!-- placeholder = 占位符（pu lei si hou de 普雷斯后的）—— 灰色提示文字 -->
-                <!-- required = 必填（rui kuai e de 瑞快厄得） -->
-                <input type="text" name="username" placeholder="请输入昵称" required>
+        <div class="header-bar">
+            <h1>📋 留言板</h1>
+            <p class="subtitle">留下你想说的话</p>
+            <div class="user-bar">
+                {% if email %}
+                    <!-- 已登录 -->
+                    <span class="user-info">👤 {{ email }}</span>
+                    <a href="/logout" class="btn-logout">退出</a>
+                {% else %}
+                    <!-- 未登录 -->
+                    <a href="/login" class="btn-login">登录</a>
+                    <a href="/register" class="btn-register">注册</a>
+                {% endif %}
             </div>
+        </div>
+
+        <!-- 留言表单（只有登录后才能看到） -->
+        <!-- action = 动作（ai ke shen 埃克申）—— 提交到哪个网址 -->
+        <!-- method = 方法（mai se de 麦瑟德） -->
+        <!-- POST = 提交方式（pou si te 剖斯特） -->
+        {% if email %}
+        <form action="/submit" method="POST">
             <div class="form-group">
                 <label>留言内容</label>
                 <textarea name="content" placeholder="写点什么..." required></textarea>
             </div>
-            <!-- type="submit" = 提交按钮 -->
             <button type="submit" class="btn-submit">发布留言</button>
         </form>
+        {% else %}
+        <div class="login-tip">
+            <p>💡 <a href="/login">登录</a> 或 <a href="/register">注册</a> 后即可留言</p>
+        </div>
+        {% endif %}
 
         <!-- 留言列表 -->
         <div class="messages">

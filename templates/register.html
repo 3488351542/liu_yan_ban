@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册</title>
+    <!-- title = 标题（tai tou 太头） -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .box {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 8px; font-size: 24px; }
+        .desc { text-align: center; color: #999; font-size: 13px; margin-bottom: 25px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block; font-size: 14px; color: #555;
+            margin-bottom: 5px; font-weight: bold;
+        }
+        .form-group input {
+            width: 100%; padding: 12px 15px;
+            border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 15px; outline: none; transition: border-color 0.3s;
+        }
+        .form-group input:focus { border-color: #667eea; }
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        .input-row input { flex: 1; }
+        .btn-code {
+            padding: 12px 16px;
+            background: #f0f0f0;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn-code:hover { background: #667eea; color: white; }
+        .btn-code:disabled { background: #ccc; border-color: #ccc; color: #999; cursor: not-allowed; }
+        .btn {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 8px;
+            font-size: 16px; cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .link { text-align: center; margin-top: 16px; font-size: 14px; }
+        .link a { color: #667eea; text-decoration: none; }
+        .link a:hover { text-decoration: underline; }
+        .msg {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #667eea;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>📝 注册</h1>
+        <p class="desc">输入邮箱获取验证码，设置密码完成注册</p>
+
+        <form action="/register" method="POST">
+            <div class="form-group">
+                <label>邮箱（email = yi mei ou 伊梅欧）</label>
+                <div class="input-row">
+                    <input type="email" name="email" id="email" placeholder="输入邮箱地址" required>
+                    <button type="button" class="btn-code" id="sendBtn" onclick="sendCode()">发送验证码</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>验证码（verify code = ve rui fai kou de 沃瑞法埃寇得）</label>
+                <input type="text" name="code" placeholder="输入邮件中的6位验证码" maxlength="6" required>
+            </div>
+            <div class="form-group">
+                <label>密码（password = pa si wo de 帕斯沃得）</label>
+                <input type="password" name="password" placeholder="设置密码" required>
+            </div>
+            <button type="submit" class="btn">注册</button>
+        </form>
+
+        <div id="msg" class="msg"></div>
+
+        <div class="link">
+            已有账号？<a href="/login">去登录</a>
+        </div>
+    </div>
+
+    <script>
+    // script = 脚本（si ke rui pu te 斯科瑞普特）
+    // 以下代码在浏览器里运行（不是 Python，是 JavaScript）
+    // 功能：点击"发送验证码"按钮时，调用 /send_code 接口
+
+    function sendCode() {
+        // function = 函数（fang ke shen 放克申）
+        // send = 发送（sen de 森得）
+        // Code = 验证码
+
+        var email = document.getElementById("email").value;
+        // document = 文档（dai kiu men te 代邱门特）—— 当前网页
+        // getElementById = 根据 id 获取元素
+        // value = 值（输入框里的内容）
+
+        if (!email || email.indexOf("@") === -1) {
+            // indexOf = 查找位置（yin dai ke si ao fu 音代克斯奥夫）
+            alert("请输入正确的邮箱地址");
+            return;
+        }
+
+        var btn = document.getElementById("sendBtn");
+        btn.disabled = true;      // disabled = 禁用（di si ei bo de 迪斯埃伯得）
+        btn.textContent = "发送中...";
+
+        // fetch = 取（fei chi 飞奇）—— 向服务器发请求
+        fetch("/send_code", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "email=" + encodeURIComponent(email)
+        })
+        .then(function(response) { return response.text(); })
+        .then(function(data) {
+            document.getElementById("msg").textContent = data;
+            // 60 秒后重新启用按钮
+            var count = 60;
+            btn.textContent = count + "秒后重试";
+            var timer = setInterval(function() {
+                // timer = 计时器（tai me 太么）
+                // setInterval = 每隔一段时间执行一次
+                count--;
+                if (count > 0) {
+                    btn.textContent = count + "秒后重试";
+                } else {
+                    clearInterval(timer);   // 停止计时
+                    btn.disabled = false;
+                    btn.textContent = "发送验证码";
+                }
+            }, 1000);
+        });
+    }
+    </script>
+</body>
+</html>

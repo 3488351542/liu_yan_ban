@@ -1,64 +1,72 @@
 """
-留言板应用 - 第一阶段
+留言板应用 - 增加邮箱验证码注册/登录
 
-留言 = message（mai sei zhi 麦塞至）
-板 = board（bo de 伯得）
-应用 = application（ai pu li kei shen 爱普利克申）
-
-技术：Python + Flask + SQLite + HTML/CSS
-功能：任何人都可以发留言，显示所有留言
+技术：Python + Flask + SQLite + HTML/CSS + QQ邮箱SMTP
+功能：邮箱验证码注册 → 登录 → 发留言
 """
 
 # === 第 1 部分：引入别人写好的功能 ===
 # from = 从...（fu rang mu 弗让姆）
-# import = 引入（yin pao te 因泡特）—— 拿别人写好的功能来用
-from flask import Flask, render_template, request
-# flask = 弗拉斯克（轻量级网页框架，别人写好的 Python 库）
-# render = 渲染（ren de 认得）—— 把内容填充到 HTML 里
-# template = 模板（tan pu lie te 坦普列特）—— HTML 文件
-# request = 请求（rui kui si te 瑞奎斯特）—— 用户发来的数据
-
+# import = 引入（yin pao te 因泡特）
+from flask import Flask, render_template, request, session, redirect
 import sqlite3
-# sqlite3 = 爱斯快特（轻量级数据库，Python 自带，不用额外安装）
-# 一个文件就是一个数据库，像 Excel 但更轻量
-
 import os
-# os = operating system = 操作系统（ou ai si 欧埃斯）
-# 用来操作文件和路径
+import random       # random = 随机（ruan dou mu 软斗姆）—— 生成验证码
+import smtplib      # smtplib = SMTP 库（发邮件用）
+from email.mime.text import MIMEText
+# email = 电子邮件   mime = 邮件格式   text = 文本
+from werkzeug.security import generate_password_hash, check_password_hash
 
-
-# === 第 2 部分：创建网站应用 ===
-# app = application = 应用（ai pu 爱普）
-# Flask(__name__) = 创建一个网站应用
-# __name__ = Python 自带的变量，值是 "__main__"
-# name = 名字（nei mu 内姆）
 app = Flask(__name__)
+
+# secret_key = 密钥（si ke rui te ki 斯科瑞特奇）
+# 用来加密 session，随便写一个字符串就行
+app.secret_key = "liu-yan-ban-2024-xue-xi-xiang-mu-666"
+
+
+# ========== QQ 邮箱配置 ==========
+# config = 配置（ken fi ge 肯菲格）
+# SMTP = 发邮件用的协议
+
+# 你的 QQ 邮箱地址
+MAIL_SENDER = "3488351542@qq.com"
+# MAIL = 邮件（mei ou 梅欧）
+# SENDER = 发送者（sen de 森得）
+
+# QQ 邮箱 SMTP 授权码（你在 QQ 邮箱设置里开启 SMTP 时拿到的）
+MAIL_AUTH_CODE = "eiuclhvsfdebdbhj"
+# AUTH = authorization = 授权（ao se rui zei shen 奥瑟瑞泽申）
+# CODE = 码（kou de 寇得）
+
+# QQ 邮箱 SMTP 服务器地址
+MAIL_SERVER = "smtp.qq.com"
+# SERVER = 服务器（se ve 瑟沃）
+# smtp.qq.com = QQ 邮箱的发件服务器
+
+# SMTP 端口（587 = TLS 加密方式）
+MAIL_PORT = 587
+# PORT = 端口（pao te 泡特）
+
+# === 验证码临时存储 ===
+# 用字典存：{邮箱地址: {code: 验证码, time: 发送时间}}
+# 因为只在内存里，重启服务器后验证码会清空
+# verify = 验证（ve rui fai 沃瑞法爱）
+# codes = 码们（多个验证码）
+verify_codes = {}
 
 
 # =============================================
 # 数据库操作
-# database = 数据库（dei ta bei si 嘚塔贝斯）
-# operation = 操作（ao pei rei shen 奥陪瑞申）
 # =============================================
 
 def init_db():
-    """init = initialize = 初始化（i ni she lai zi 伊尼舍来子）
-       db = database = 数据库（dei ta bei si 嘚塔贝斯）
-       第一次运行时创建数据库表"""
+    """init = 初始化
+       创建 messages 表和 users 表"""
 
-    # conn = connection = 连接（ke nai ke shen 科奈科申）
-    # connect = 连接（ke nai ke te 科奈科特）
-    # "database.db" = 数据库文件名，存到本地硬盘
     conn = sqlite3.connect("database.db")
-
-    # cursor = 游标 / 操作手柄（ke se 科瑟）
-    # 像鼠标指针一样，用来执行 SQL 命令
     cursor = conn.cursor()
 
-    # execute = 执行（ai ke si kiu te 埃克斯求特）
-    # 执行 SQL 命令，创建一张叫 messages 的表
-    # table = 表（tei bou 忒伯）—— 类似 Excel 里的 Sheet
-    # if not exists = 如果不存在（yi fu nao te yi ge si ci 衣夫闹特伊格贼斯特）
+    # 留言表（跟之前一样）
     cursor.execute("""
         create table if not exists messages (
             id integer primary key autoincrement,
@@ -67,151 +75,301 @@ def init_db():
             created_at timestamp default current_timestamp
         )
     """)
-    # id = 编号（ai di 埃迪）—— 每条留言的唯一编号
-    # integer = 整数（yin te zhe 因特哲）—— 整数类型
-    # primary = 主要的（pu rai me rui 普瑞么瑞）
-    # key = 键（ki 奇）
-    # primary key = 主键 = 唯一标识，每条记录都不一样
-    # autoincrement = 自动增长（ao tou yin ke rui men te 奥拓因克瑞门特）
-    #   每次加一条数据，id 自动 +1，不会重复
-    # username = 用户名（yo ze nei mu 优则内姆）
-    # text = 文本（tai ke si te 泰科斯特）
-    # not null = 不能为空（nao te na er 闹特纳尔）
-    # content = 内容（ken ten te 肯ten特）—— 留言内容
-    # created_at = 创建于（ke rui ei ti de ai te 克瑞埃提德埃特）
-    # timestamp = 时间戳（tai mu si tan pu 太姆斯坦普）
-    # default = 默认（di fo te 迪佛特）
-    # current_timestamp = 当前时间戳（ka ren te tai mu si tan pu 卡ren特太姆斯坦普）
 
-    # commit = 提交 / 确认（ke mi te 科密特）
-    # 把上面的操作真正保存到硬盘文件里
+    # 用户表（用 email 代替 phone）
+    # email = 电子邮件（yi mei ou 伊梅欧）
+    # unique = 唯一（you ni ke 优尼克）—— 邮箱不能重复注册
+    cursor.execute("""
+        create table if not exists users (
+            id integer primary key autoincrement,
+            email text not null unique,
+            password text not null,
+            created_at timestamp default current_timestamp
+        )
+    """)
     conn.commit()
-
-    # close = 关闭（ke lou si 科漏斯）
-    # 断开与数据库的连接，释放资源
     conn.close()
 
 
 def get_messages():
-    """get = 获取（gai te 盖特）
-       messages = 留言们（mai sei zhi si 麦塞至斯）
-       读取所有留言，按时间从新到旧排序"""
-
-    # 连接数据库
+    """读取所有留言，按时间倒序"""
     conn = sqlite3.connect("database.db")
-
-    # row = 行（rou 肉）—— 数据库里的一行数据
-    # factory = 工厂（fa ke te rui 法科特瑞）
-    # row_factory = 设定返回的数据格式
-    # sqlite3.Row = 让返回的数据可以用名字访问（像字典一样）
     conn.row_factory = sqlite3.Row
-
-    # cursor = 操作手柄
     cursor = conn.cursor()
-
-    # select = 查询 / 选择（si lai ke te 斯莱科特）
-    # * = 星号，代表"所有列"
-    # from = 从（fu rang mu 弗让姆）
-    # order by = 按...排序（ao de bai 奥得拜）
-    # desc = descending = 降序（di shen ding 迪申丁）—— 从大到小，最新的在前
     cursor.execute("select * from messages order by created_at desc")
-
-    # fetch = 取（fei chi 飞奇）
-    # all = 所有（ao er 奥尔）
-    # fetchall = 取出所有查询结果
     messages = cursor.fetchall()
-
-    # 关闭连接
     conn.close()
-
-    # return = 返回（rui ten 瑞ten）—— 把结果交给调用这个函数的人
     return messages
 
 
 def save_message(username, content):
-    """save = 保存（sei fu 塞夫）
-       username = 用户名（yo ze nei mu 优则内姆）
-       content = 内容（ken ten te 肯ten特）
-       保存一条新留言到数据库"""
-
+    """保存一条新留言"""
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-
-    # insert = 插入（yin se te 因瑟特）
-    # into = 进入（yin tu 因图）
-    # values = 值（wai liu zi 外刘子）
-    # (?, ?) = 两个问号占位符，后面用实际数据替换
-    # 这样做可以防止黑客攻击（SQL 注入）
     cursor.execute(
         "insert into messages (username, content) values (?, ?)",
         (username, content)
     )
-
     conn.commit()
     conn.close()
 
 
+# ========== 用户操作 ==========
+
+def create_user(email, password):
+    """create = 创建
+       创建新用户，存入数据库"""
+
+    # generate_password_hash = 把密码加密
+    hashed = generate_password_hash(password)
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "insert into users (email, password) values (?, ?)",
+            (email, hashed)
+        )
+        conn.commit()
+        return True   # 注册成功
+    except:
+        return False  # 注册失败（邮箱已被注册）
+    finally:
+        conn.close()
+
+
+def get_user_by_email(email):
+    """get = 获取
+       by = 通过
+       根据邮箱查用户信息"""
+
+    conn = sqlite3.connect("database.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(
+        "select * from users where email = ?",
+        [email]
+    )
+    user = cursor.fetchone()
+    conn.close()
+    return user
+
+
+# ========== 发送验证码邮件 ==========
+# send = 发送（sen de 森得）
+
+def send_verify_code(email):
+    """send = 发送
+       verify = 验证
+       code = 码
+       生成 6 位随机验证码，发到用户邮箱"""
+
+    # 生成 6 位随机数字验证码
+    # randint = random integer = 随机整数（ruan dou mu yin te zhe 软斗姆因特哲）
+    code = str(random.randint(100000, 999999))
+
+    # 把验证码存到字典里，同时记录发送时间
+    # import time 计时用
+    import time
+    verify_codes[email] = {
+        "code": code,      # 验证码
+        "time": time.time() # 发送时的时间戳（秒数）
+    }
+
+    # 构造邮件内容
+    # MIMEText = 邮件文本对象
+    # _subtype = "html" 代表邮件内容是 HTML 格式
+    msg = MIMEText(
+        f"""
+        <div style="max-width:500px; margin:0 auto; padding:20px; font-family:Arial;">
+            <h2 style="color:#667eea;">📋 留言板 - 邮箱验证</h2>
+            <p>你的验证码是：</p>
+            <div style="font-size:32px; font-weight:bold; color:#764ba2;
+                        text-align:center; padding:20px; background:#f8f9ff;
+                        border-radius:8px; letter-spacing:8px;">
+                {code}
+            </div>
+            <p style="color:#999; font-size:12px; margin-top:20px;">
+                验证码有效期为 5 分钟。如果不是你本人操作，请忽略此邮件。
+            </p>
+        </div>
+        """,
+        _subtype="html"
+    )
+    # _subtype = 子类型（sa bu tai pu 撒布太普）
+
+    # 设置邮件主题、发件人、收件人
+    # subject = 主题（sa bo jie ke te 萨伯杰克特）
+    msg["Subject"] = "留言板 - 验证码"
+    msg["From"] = MAIL_SENDER
+    msg["To"] = email
+
+    # 连接 QQ 邮箱 SMTP 服务器并发送
+    # smtplib.SMTP = 创建一个 SMTP 连接
+    # timeout = 超时时间（tai mao te 太毛特）
+    server = smtplib.SMTP(MAIL_SERVER, MAIL_PORT, timeout=10)
+    # starttls = 启动加密传输（把内容加密，防止被偷看）
+    server.starttls()
+    # login = 登录（用授权码登录 QQ 邮箱）
+    server.login(MAIL_SENDER, MAIL_AUTH_CODE)
+    # sendmail = 发送邮件
+    server.sendmail(MAIL_SENDER, [email], msg.as_string())
+    # quit = 退出（断开 SMTP 连接）
+    server.quit()
+
+    return code  # 返回验证码（方便调试）
+
+
 # =============================================
 # 页面路由
-# route = 路径 / 路线（ru te 入特）
-# 用户访问不同网址时，执行不同的函数
 # =============================================
 
-# @app.route("/") = 告诉 Flask：用户访问首页时，执行下面的函数
-# @ = 装饰器（zhuang shi qi）—— Python 语法，给函数增加额外功能
-# / = 斜杠，代表网站首页
 @app.route("/")
 def home():
-    """home = 首页 / 家（hou mu 后姆）
-       用户访问首页时，显示留言列表"""
+    """home = 首页
+       显示留言列表"""
 
-    # 调用上面定义的函数，从数据库获取所有留言
     messages = get_messages()
+    # session.get("email") = 取当前登录用户的邮箱
+    email = session.get("email")
+    return render_template("index.html", messages=messages, email=email)
 
-    # render_template = 渲染模板
-    # 把 data 数据传给 index.html 文件，由 HTML 负责展示
-    return render_template("index.html", messages=messages)
 
-
-# methods = 方法（mai se de 麦瑟德）
-# POST = 提交（pou si te 剖斯特）—— 用户提交表单时的请求方式
 @app.route("/submit", methods=["POST"])
 def submit():
-    """submit = 提交（sa bo mi te 萨波密特）
-       用户提交留言时执行"""
+    """submit = 提交留言"""
 
-    # request.form = 用户提交的表单数据（fo mu 佛姆）
-    # request.form.get("username") = 从表单里取出 name="username" 的输入框的值
-    # get = 获取（gai te 盖特）
-    username = request.form.get("username")
+    # 检查用户是否已登录
+    email = session.get("email")
+    if not email:
+        return redirect("/login")
+
     content = request.form.get("content")
 
-    # if = 如果（yi fu 衣夫）
-    # and = 并且（an de 安德）
-    # 如果用户名和内容都不为空，才保存到数据库
-    if username and content:
-        save_message(username, content)
+    if content:
+        # 用邮箱的前半部分作为显示名
+        # 例如：user@qq.com → user
+        display_name = email.split("@")[0]  # split = 分割（si pu li te 斯普利特）
+        save_message(display_name, content)
 
-    # 保存完后，调用 home() 回到首页，刷新留言列表
-    return home()
+    return redirect("/")
+
+
+# ========== 发送验证码（API接口） ==========
+# API = 接口（ei pi ai 埃皮埃）—— 给前端页面调用的网址
+
+@app.route("/send_code", methods=["POST"])
+def send_code():
+    """send = 发送
+       code = 验证码
+       用户点击"发送验证码"时调用的接口"""
+
+    email = request.form.get("email")
+
+    # 检查邮箱格式（必须包含 @）
+    if not email or "@" not in email:
+        return "请输入正确的邮箱地址"
+
+    try:
+        # 调用上面定义的函数，发送验证码
+        send_verify_code(email)
+        return "验证码已发送，请查收邮件"
+    except Exception as e:
+        # exception = 异常（ai ke sai pu shen 埃克赛普申）—— 程序出错
+        return f"发送失败：{str(e)}"
+
+
+# ========== 注册 ==========
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """register = 注册
+       GET  = 显示注册表单
+       POST = 处理注册"""
+
+    if request.method == "GET":
+        return render_template("register.html")
+
+    # POST：处理注册
+    email = request.form.get("email")
+    password = request.form.get("password")
+    code = request.form.get("code")       # 用户输入的验证码
+
+    # 检查必填项
+    if not email or not password or not code:
+        return "邮箱、密码、验证码都不能为空"
+
+    # 验证码校验
+    # verify = 验证
+    saved = verify_codes.get(email)  # 从字典里取之前存的验证码
+    if not saved:
+        return "请先发送验证码"
+
+    # 检查验证码是否过期（5分钟 = 300秒）
+    import time
+    if time.time() - saved["time"] > 300:
+        return "验证码已过期，请重新发送"
+
+    # 检查验证码是否正确
+    if saved["code"] != code:
+        return "验证码错误"
+
+    # 验证码正确 → 创建用户
+    success = create_user(email, password)
+    if success:
+        # 删除已使用的验证码
+        del verify_codes[email]
+        # 注册成功，自动登录
+        session["email"] = email
+        return redirect("/")
+    else:
+        return "该邮箱已被注册"
+
+
+# ========== 登录 ==========
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """login = 登录
+       GET  = 显示登录表单
+       POST = 处理登录"""
+
+    if request.method == "GET":
+        return render_template("login.html")
+
+    # POST：处理登录
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    if not email or not password:
+        return "邮箱和密码不能为空"
+
+    user = get_user_by_email(email)
+
+    if user and check_password_hash(user["password"], password):
+        # 登录成功
+        session["email"] = email
+        return redirect("/")
+    else:
+        return "邮箱或密码错误"
+
+
+# ========== 退出登录 ==========
+
+@app.route("/logout")
+def logout():
+    """logout = 退出登录
+       清除 session"""
+
+    session.clear()
+    return redirect("/")
 
 
 # =============================================
 # 初始化数据库 + 启动
 # =============================================
 
-# 在服务器启动时初始化数据库（建表）
-# 注意：这行放在 if 外面，因为 gunicorn 导入时不会执行 if __name__ 里面的代码
 init_db()
 
-# __name__ == "__main__"
-# 判断这个文件是不是直接运行的
-# 如果是直接运行，就启动网站
-# 如果是被别的文件 import 的，就不启动（防止干扰）
-# main = 主要的（mei yin 梅因）
 if __name__ == "__main__":
-    app.run(debug=True)     # run = 运行（ran 然）
-                            # debug = 调试（di ba ge 迪巴格）
-                            # debug=True = 调试模式
-                            #   - 改了代码自动重启
-                            #   - 出错时显示详细错误信息
+    app.run(debug=True)
