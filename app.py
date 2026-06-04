@@ -43,8 +43,8 @@ MAIL_SERVER = "smtp.qq.com"
 # SERVER = 服务器（se ve 瑟沃）
 # smtp.qq.com = QQ 邮箱的发件服务器
 
-# SMTP 端口（587 = TLS 加密方式）
-MAIL_PORT = 587
+# SMTP 端口（465 = SSL 加密方式）
+MAIL_PORT = 465
 # PORT = 端口（pao te 泡特）
 
 # === 验证码临时存储 ===
@@ -205,11 +205,9 @@ def send_verify_code(email):
     msg["To"] = email
 
     # 连接 QQ 邮箱 SMTP 服务器并发送
-    # smtplib.SMTP = 创建一个 SMTP 连接
+    # SMTP_SSL = 直接用 SSL 加密连接（端口 465）
     # timeout = 超时时间（tai mao te 太毛特）
-    server = smtplib.SMTP(MAIL_SERVER, MAIL_PORT, timeout=10)
-    # starttls = 启动加密传输（把内容加密，防止被偷看）
-    server.starttls()
+    server = smtplib.SMTP_SSL(MAIL_SERVER, MAIL_PORT, timeout=10)
     # login = 登录（用授权码登录 QQ 邮箱）
     server.login(MAIL_SENDER, MAIL_AUTH_CODE)
     # sendmail = 发送邮件
