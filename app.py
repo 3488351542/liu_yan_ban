@@ -7,6 +7,7 @@ from flask import (Flask, render_template, request, session,
 # Response = 响应（rui si pao en si 瑞斯泡恩si）
 # stream = 流（si de rui mu 斯德瑞姆）—— 一个字一个字输出
 # stream_with_context = 带上下文的流式输出
+import os
 import psycopg2
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -43,15 +44,19 @@ def get_now():
 
 
 def get_db():
-    """连接 PostgreSQL"""
-    conn = psycopg2.connect(
+    """连接 PostgreSQL（支持本地和云端）"""
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        # 云端：Railway 会自动设置 DATABASE_URL
+        return psycopg2.connect(database_url)
+    # 本地：用你本机的配置
+    return psycopg2.connect(
         host="localhost",
         port=5432,
         database="message_board",
         user="postgres",
         password="123456"
     )
-    return conn
 
 
 def init_db():

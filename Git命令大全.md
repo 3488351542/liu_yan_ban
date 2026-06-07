@@ -317,6 +317,97 @@ git merge --no-ff 分支名     # 禁用快进合并
 | `merge` | 合并 | me zhi 么之 |
 | `--no-ff` | no fast forward = 不快进 | bu kuai jin 不快进 |
 
+**merge 怎么工作的：**
+
+合并前：
+```
+main:   提交A ← 提交B ← 提交C
+                                ↑
+                              main
+
+新功能: 提交A ← 提交B ← 提交C ← 提交D ← 提交E
+                                                ↑
+                                             新功能
+```
+
+执行 `git switch main` + `git merge 新功能` 后：
+```
+main:   提交A ← 提交B ← 提交C ← 提交D ← 提交E
+                                                ↑
+                                          main + 新功能（都有）
+```
+
+**合并后两个分支都有同样的代码，都不丢失。**
+
+---
+
+### 4.3.1 Fast-Forward（快进合并）vs 普通合并
+
+```bash
+git merge 新功能        # 默认：如果可能，使用快进
+git merge --no-ff 新功能  # 禁用快进，总是创建一个新的 merge commit
+```
+
+**Fast-Forward（快进）** —— main 没有新提交，直接把指针往前移：
+```
+合并前：  main → 提交A ← 提交B
+                    新功能 → 提交C ← 提交D
+
+合并后：  main + 新功能 → 提交A ← 提交B ← 提交C ← 提交D
+```
+没有分叉，直接往前推。
+
+**--no-ff（不快进）** —— 总是建一个新 commit：
+```
+合并前：  main → 提交A
+                    新功能 → 提交B ← 提交C
+
+合并后：  main → 提交A ←─ 提交D（merge commit）
+                         ↙         ↗
+              新功能 → 提交B ←── 提交C
+```
+保留分支历史，能看出来"这里曾经有个分支"。
+
+---
+
+### 4.3.2 合并后查看结果
+
+```bash
+# 图形化看合并历史
+git log --oneline --graph
+
+# 看所有分支的合并情况
+git log --oneline --graph --all
+```
+
+---
+
+### 4.3.3 合并冲突
+
+如果两个分支改了同一个文件同一行，合并时会报冲突：
+
+```bash
+git merge 新功能
+# Auto-merging app.py
+# CONFLICT (content): Merge conflict in app.py
+# Automatic merge failed; fix conflicts and then commit the result.
+```
+
+解决冲突三步：
+
+```bash
+# 1. 打开冲突文件，手动选择保留哪个版本
+#    <<<<<<< HEAD   ← 当前分支的内容
+#    =======       ← 分隔线
+#    >>>>>>> 新功能  ← 被合并分支的内容
+
+# 2. 修改完后保存，标记为已解决
+git add app.py
+
+# 3. 提交合并
+git commit
+```
+
 ---
 
 ### 4.4 rebase — 变基（整理提交历史）
@@ -586,4 +677,55 @@ git push origin master
 git clone https://github.com/你的用户名/仓库名.git
 cd 仓库名
 ```
+```
+
+---
+
+## 九、查看文件是否被跟踪
+
+### 9.1 `git ls-files` 文件名（最直接）
+
+```bash
+git ls-files 文件名
+```
+
+| 结果 | 说明 |
+|:----|:------|
+| 有输出（显示文件名） | ✅ 被跟踪了 |
+| 没输出 | ❌ 没被跟踪（或已被忽略） |
+
+### 9.2 `git status` 文件名
+
+```bash
+git status 文件名
+```
+
+| 结果 | 说明 |
+|:----|:------|
+| `Changes to be committed` 或 `modified` | ✅ 被跟踪 |
+| `Untracked files` | ❌ 没被跟踪 |
+| 不显示在列表里 | 🔒 被 `.gitignore` 忽略了 |
+
+### 9.3 `git check-ignore -v` 文件名
+
+```bash
+git check-ignore -v 文件名
+```
+
+| 结果 | 说明 |
+|:----|:------|
+| 显示匹配的规则（如 `.gitignore:219:*.db database.db`） | 🔒 被 `.gitignore` 忽略了 |
+| 没显示 | ✅ 没被忽略（或被跟踪） |
+
+### 示例
+
+```bash
+# 查 app.py 是否被跟踪
+git ls-files app.py
+
+# 查 database.db 是否被忽略
+git check-ignore -v database.db
+
+# 看文件状态
+git status database.db
 ```
