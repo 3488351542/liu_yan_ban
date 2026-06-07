@@ -533,7 +533,7 @@ def api_chat():
             "stream": False
         }
 
-        response = requests.post(DEEPSEEK_URL, headers=headers, json=payload, timeout=120)
+        response = requests.post(DEEPSEEK_URL, headers=headers, json=payload, timeout=600)
         result = response.json()
 
         if "choices" not in result:
@@ -627,7 +627,7 @@ def api_chat_stream():
 
             resp = requests.post(
                 DEEPSEEK_URL, headers=headers, json=payload,
-                stream=True, timeout=120
+                stream=True, timeout=600
             )
 
             for line in resp.iter_lines():
@@ -769,7 +769,7 @@ def api_image_generate():
             IMAGE_GEN_URL,
             headers=headers,
             json=payload,
-            timeout=120
+            timeout=600
         )
 
         result = response.json()
