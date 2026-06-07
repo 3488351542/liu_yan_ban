@@ -2,6 +2,18 @@
 
 > 作者注：每个英文单词都标注了中文翻译 + 拼音发音
 
+### 例子中出现的单词发音
+
+| 英文 | 拼音 | 中文 |
+|------|------|------|
+| remote | rui mou te 瑞谋特 | 远程 |
+| origin | ao rui jin 奥瑞金 | 远程仓库名 |
+| master | ma si te 马斯特 | 主分支 |
+| main | mei yin 梅因 | 主分支 |
+| upstream | a pu si te rui mu 阿普斯特瑞姆 | 上游 |
+| branch | bu ran chi 布染迟 | 分支 |
+| message | mai sei zhi 麦塞至 | 消息 |
+
 ---
 
 ## 为什么要用 Git / GitHub
