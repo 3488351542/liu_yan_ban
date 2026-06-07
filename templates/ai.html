@@ -172,6 +172,31 @@
             66% { content: '..'; }
             100% { content: '...'; }
         }
+    /* ===== 手机适配 ===== */
+    @media (max-width: 600px) {
+        body { padding: 10px; }
+        .container { padding: 15px; border-radius: 10px; }
+        .top-bar { flex-direction: column; align-items: flex-start; gap: 6px; }
+        .top-bar h1 { font-size: 18px; }
+        .top-bar a { font-size: 12px; padding: 6px 10px; }
+        .api-row { flex-direction: column; }
+        .api-row input { font-size: 16px; }
+        .api-row button { padding: 10px; font-size: 14px; }
+        .model-bar { flex-wrap: wrap; gap: 6px; }
+        .model-bar label { font-size: 12px; }
+        .btn-upload { padding: 6px 8px; font-size: 11px; }
+        .btn-clear { padding: 6px 8px; font-size: 11px; }
+        .chat-box { max-height: 350px; min-height: 200px; }
+        .msg { padding: 8px 10px; font-size: 14px; }
+        .input-bar textarea { font-size: 16px; }
+        .btn-send { padding: 0 16px; font-size: 14px; }
+        .input-tools { flex-wrap: wrap; }
+    }
+    @media (max-width: 400px) {
+        .container { padding: 10px; }
+        .top-bar h1 { font-size: 16px; }
+        .msg { font-size: 13px; }
+    }
     </style>
 </head>
 <body>

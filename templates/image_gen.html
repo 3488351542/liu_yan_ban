@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT Image 生图 - 留言板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; padding: 20px;
+        }
+        .container {
+            max-width: 900px; margin: 0 auto;
+            background: white; border-radius: 16px;
+            padding: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+
+        /* 顶部 */
+        .top-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 15px; flex-wrap: wrap; gap: 8px;
+        }
+        .top-bar h1 { font-size: 22px; color: #333; }
+        .top-bar .nav-links { display: flex; gap: 8px; }
+        .top-bar a {
+            padding: 8px 16px; background: #f0f0f0;
+            border-radius: 8px; text-decoration: none;
+            color: #666; font-size: 13px;
+        }
+        .top-bar a:hover { background: #e0e0e0; }
+        .top-bar .active-link { background: #667eea; color: white; }
+
+        /* API Key */
+        .api-section {
+            background: #f8f9ff; border-radius: 10px;
+            padding: 12px 15px; margin-bottom: 12px;
+        }
+        .api-row { display: flex; gap: 8px; margin-bottom: 6px; }
+        .api-row input {
+            flex: 1; padding: 7px 12px; border: 2px solid #e0e0e0;
+            border-radius: 6px; font-size: 13px; outline: none;
+        }
+        .api-row input:focus { border-color: #667eea; }
+        .api-row button {
+            padding: 7px 16px; background: #667eea; color: white;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+        }
+        .api-link { font-size: 12px; color: #667eea; }
+        .api-link a { color: #667eea; }
+        .api-status { font-size: 12px; color: #27ae60; }
+
+        /* 参数区 */
+        .params-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px; margin-bottom: 12px;
+        }
+        .param-item label {
+            display: block; font-size: 12px; color: #555;
+            margin-bottom: 3px; font-weight: bold;
+        }
+        .param-item select, .param-item input {
+            width: 100%; padding: 7px 10px;
+            border: 2px solid #e0e0e0; border-radius: 6px;
+            font-size: 13px; outline: none;
+        }
+        .param-item select:focus, .param-item input:focus { border-color: #667eea; }
+
+        /* 提示词输入 */
+        .prompt-area { margin-bottom: 12px; }
+        .prompt-area label {
+            display: block; font-size: 12px; color: #555;
+            margin-bottom: 3px; font-weight: bold;
+        }
+        .prompt-area textarea {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; outline: none; resize: vertical;
+            min-height: 80px; font-family: inherit;
+        }
+        .prompt-area textarea:focus { border-color: #667eea; }
+
+        /* 图片上传（gpt-image-2-all） */
+        .upload-section {
+            background: #f8f9ff; border-radius: 10px;
+            padding: 12px 15px; margin-bottom: 12px; display: none;
+        }
+        .upload-section.show { display: block; }
+        .upload-section .upload-hint { font-size: 12px; color: #999; margin-top: 4px; }
+        .upload-list {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+        }
+        .upload-item {
+            position: relative; display: inline-block;
+        }
+        .upload-item img {
+            width: 60px; height: 60px; object-fit: cover;
+            border-radius: 6px; border: 1px solid #e0e0e0;
+        }
+        .upload-item .remove-btn {
+            position: absolute; top: -4px; right: -4px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: #e74c3c; color: white; border: none;
+            font-size: 11px; cursor: pointer; line-height: 18px;
+            text-align: center;
+        }
+
+        /* 生成按钮 */
+        .btn-generate {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 8px;
+            font-size: 16px; cursor: pointer; font-weight: bold;
+            margin-bottom: 12px; transition: all 0.2s;
+        }
+        .btn-generate:hover { opacity: 0.9; }
+        .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-generate.loading { background: #999; cursor: not-allowed; }
+
+        /* ===== 加载动画 ===== */
+        .loading-overlay {
+            display: none; text-align: center; padding: 40px 0;
+        }
+        .loading-overlay.show { display: block; }
+        .spinner {
+            width: 50px; height: 50px; margin: 0 auto 15px;
+            border: 4px solid #f0f2ff; border-top: 4px solid #667eea;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text {
+            font-size: 15px; color: #667eea; font-weight: bold;
+        }
+        .loading-hint {
+            font-size: 12px; color: #999; margin-top: 4px;
+        }
+
+        /* 进度/错误提示 */
+        .status-msg {
+            text-align: center; font-size: 13px; padding: 6px;
+            margin-bottom: 10px; border-radius: 6px; display: none;
+        }
+        .status-msg.error { background: #ffeaea; color: #e74c3c; display: block; }
+        .status-msg.success { background: #eaffea; color: #27ae60; display: block; }
+        .status-msg.loading { background: #f8f9ff; color: #667eea; display: block; }
+
+        /* 结果展示 */
+        .results { display: none; }
+        .results.show { display: block; }
+        .results-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px; margin-top: 10px;
+        }
+        .result-card {
+            background: #f8f9ff; border-radius: 10px;
+            padding: 10px; text-align: center;
+        }
+        .result-card img {
+            width: 100%; border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .result-card .img-actions {
+            display: flex; gap: 6px; margin-top: 8px;
+            justify-content: center;
+        }
+        .result-card .img-actions button, .result-card .img-actions a {
+            padding: 5px 12px; border-radius: 6px;
+            font-size: 12px; cursor: pointer; text-decoration: none;
+            border: none; transition: all 0.2s;
+        }
+        .btn-download {
+            background: #27ae60; color: white;
+        }
+        .btn-download:hover { background: #219a52; }
+        .btn-copy {
+            background: #f0f0f0; color: #666;
+        }
+        .btn-copy:hover { background: #e0e0e0; }
+        .revised-prompt {
+            font-size: 11px; color: #999; margin-top: 6px;
+            padding: 4px 8px; background: #f0f2ff; border-radius: 4px;
+            word-break: break-all;
+        }
+
+        /* 历史记录 */
+        .history-section { margin-top: 20px; }
+        .history-section h3 { font-size: 15px; color: #555; margin-bottom: 8px; }
+        .history-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+        }
+        .history-item {
+            border-radius: 6px; overflow: hidden;
+            border: 1px solid #e0e0e0; cursor: pointer;
+            position: relative;
+        }
+        .history-item img {
+            width: 100%; height: 100px; object-fit: cover;
+            display: block;
+        }
+        .history-item .del-btn {
+            position: absolute; top: 2px; right: 2px;
+            background: rgba(231,76,60,0.8); color: white;
+            border: none; border-radius: 50%;
+            width: 18px; height: 18px; font-size: 10px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .container { padding: 15px; border-radius: 10px; }
+            .top-bar h1 { font-size: 18px; }
+            .top-bar { flex-direction: column; align-items: flex-start; }
+            .top-bar .nav-links { width: 100%; display: flex; }
+            .top-bar a { flex: 1; text-align: center; font-size: 12px; padding: 8px 4px; }
+            .params-grid { grid-template-columns: 1fr; gap: 8px; }
+            .param-item select, .param-item input {
+                padding: 10px; font-size: 16px;  /* 手机端大一点好点 */
+            }
+            .prompt-area textarea { font-size: 16px; min-height: 100px; }
+            .api-row { flex-direction: column; }
+            .api-row input { font-size: 16px; }
+            .api-row button { padding: 10px; font-size: 14px; }
+            .result-card .img-actions { flex-direction: column; align-items: stretch; }
+            .result-card .img-actions button,
+            .result-card .img-actions a {
+                text-align: center; padding: 10px; font-size: 14px;
+            }
+            .btn-generate { padding: 14px; font-size: 18px; }
+            .upload-list { gap: 4px; }
+            .upload-item img { width: 50px; height: 50px; }
+            .results-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 400px) {
+            .container { padding: 10px; border-radius: 8px; }
+            .top-bar h1 { font-size: 16px; }
+            .top-bar a { font-size: 11px; padding: 6px 2px; }
+            .upload-item img { width: 40px; height: 40px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部 -->
+        <div class="top-bar">
+            <h1>🎨 GPT Image 生图</h1>
+            <div class="nav-links">
+                <a href="/ai">🤖 AI 对话</a>
+                <a href="/">← 留言板</a>
+            </div>
+        </div>
+
+        <!-- API Key -->
+        <div class="api-section">
+            <form action="/image-gen" method="POST" class="api-row">
+                <input type="password" name="image_api_key" id="image_api_key"
+                       placeholder="输入图片生成 API Key（jeniya.cn）"
+                       value="{{ image_api_key or '' }}">
+                <button type="submit">保存</button>
+            </form>
+            <div class="api-link">
+                🔗 <a href="https://jeniya.cn" target="_blank">获取 API Key（简易 API 中转）</a>
+                <span style="color:#999;margin-left:6px;">支持 gpt-image-2 / gpt-image-2-all</span>
+            </div>
+            {% if image_api_key %}
+            <div class="api-status">✅ API Key 已设置</div>
+            {% endif %}
+        </div>
+
+        <!-- 参数区 -->
+        <div class="params-grid">
+            <div class="param-item">
+                <label>模型（model / mao dou 茅斗）</label>
+                <select id="modelSelect" onchange="toggleModelOptions()">
+                    <option value="gpt-image-2">gpt-image-2（文字生图）</option>
+                    <option value="gpt-image-2-all">gpt-image-2-all（图片合并/编辑）</option>
+                </select>
+            </div>
+            <div class="param-item">
+                <label>尺寸（size / sai zi 塞子）</label>
+                <select id="sizeSelect">
+                    <option value="1024x1024">1024×1024（正方形）</option>
+                    <option value="1536x1024">1536×1024（横版）</option>
+                    <option value="1024x1536">1024×1536（竖版）</option>
+                    <option value="2048x2048">2048×2048（2K 正方形）</option>
+                    <option value="2048x1152">2048×1152（2K 横版）</option>
+                    <option value="3840x2160">3840×2160（4K 横版）</option>
+                    <option value="2160x3840">2160×3840（4K 竖版）</option>
+                </select>
+            </div>
+            <div class="param-item" id="qualityGroup">
+                <label>画质（quality / kua li ti 夸利提）</label>
+                <select id="qualitySelect">
+                    <option value="auto">auto（自动）</option>
+                    <option value="low">low（低）</option>
+                    <option value="medium">medium（中）</option>
+                    <option value="high">high（高）</option>
+                </select>
+            </div>
+            <div class="param-item" id="formatGroup">
+                <label>格式（format / fo ma te 佛马特）</label>
+                <select id="formatSelect">
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WebP</option>
+                </select>
+            </div>
+            <div class="param-item">
+                <label>数量（n / 1~10）</label>
+                <input type="number" id="nInput" value="1" min="1" max="10">
+            </div>
+        </div>
+
+        <!-- 提示词 -->
+        <div class="prompt-area">
+            <label>提示词（prompt / pu ran pu te 普让普特）
+                <span style="color:#999;font-weight:normal;">描述你想要生成的图片</span>
+            </label>
+            <textarea id="promptInput" placeholder="例：一只可爱的橘猫坐在桌子上，数字艺术风格"A cute orange cat sitting on a desk, digital art"></textarea>
+        </div>
+
+        <!-- 图片上传（gpt-image-2-all） -->
+        <div class="upload-section" id="uploadSection">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button class="btn-upload" style="padding:6px 14px;background:#f0f0f0;border:none;border-radius:6px;color:#666;cursor:pointer;font-size:13px;"
+                        onclick="document.getElementById('fileInput').click()">📎 上传图片（最多5张）</button>
+                <span id="uploadCount" style="font-size:12px;color:#999;">0/5</span>
+            </div>
+            <div class="upload-hint">
+                上传图片后，gpt-image-2-all 会根据提示词合并或编辑这些图片
+            </div>
+            <div class="upload-list" id="uploadList"></div>
+            <input type="file" id="fileInput" multiple style="display:none" accept="image/*">
+        </div>
+
+        <!-- 生成按钮 -->
+        <button class="btn-generate" id="genBtn" onclick="generate()">✨ 生成图片</button>
+
+        <!-- 加载动画 -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <div class="loading-text">🎨 正在生成图片...</div>
+            <div class="loading-hint">AI 正在根据你的描述绘制，通常需要 15~60 秒</div>
+        </div>
+
+        <!-- 状态提示 -->
+        <div class="status-msg" id="statusMsg"></div>
+
+        <!-- 结果区 -->
+        <div class="results" id="resultsArea">
+            <h3 style="font-size:15px;color:#555;margin-bottom:8px;">🖼️ 生成结果</h3>
+            <div class="results-grid" id="resultsGrid"></div>
+        </div>
+
+        <!-- 隐藏预览区（用于 base64 转 blob） -->
+        <div id="hiddenPreview" style="display:none;"></div>
+    </div>
+
+    <script>
+    // ===== 全局变量 =====
+    var uploadedImages = [];  // 已上传的图片 URL
+
+    // ===== 模型切换 =====
+    function toggleModelOptions() {
+        var model = document.getElementById("modelSelect").value;
+        var qualityGroup = document.getElementById("qualityGroup");
+        var formatGroup = document.getElementById("formatGroup");
+        var uploadSection = document.getElementById("uploadSection");
+
+        if (model === "gpt-image-2") {
+            qualityGroup.style.display = "block";
+            formatGroup.style.display = "block";
+            uploadSection.classList.remove("show");
+        } else {
+            // gpt-image-2-all
+            qualityGroup.style.display = "none";
+            formatGroup.style.display = "none";
+            uploadSection.classList.add("show");
+        }
+    }
+    // 初始化
+    toggleModelOptions();
+
+    // ===== 图片上传 =====
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+        var files = e.target.files;
+        for (var i = 0; i < files.length; i++) {
+            if (uploadedImages.length >= 5) {
+                alert("最多上传 5 张图片");
+                break;
+            }
+            var file = files[i];
+            if (!file.type.startsWith("image/")) continue;
+
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                uploadedImages.push(ev.target.result);
+                updateUploadList();
+            };
+            reader.readAsDataURL(file);
+        }
+        this.value = "";
+    });
+
+    function updateUploadList() {
+        var list = document.getElementById("uploadList");
+        var count = document.getElementById("uploadCount");
+        count.textContent = uploadedImages.length + "/5";
+
+        list.innerHTML = "";
+        for (var i = 0; i < uploadedImages.length; i++) {
+            var div = document.createElement("div");
+            div.className = "upload-item";
+            div.innerHTML = '<img src="' + uploadedImages[i] + '">' +
+                           '<button class="remove-btn" onclick="removeImage(' + i + ')">✕</button>';
+            list.appendChild(div);
+        }
+    }
+
+    function removeImage(index) {
+        uploadedImages.splice(index, 1);
+        updateUploadList();
+    }
+
+    // ===== 生成图片 =====
+    function generate() {
+        var apiKey = document.getElementById("image_api_key").value;
+        if (!apiKey) {
+            showStatus("请先设置 API Key", "error");
+            return;
+        }
+
+        var prompt = document.getElementById("promptInput").value.trim();
+        if (!prompt) {
+            showStatus("请输入提示词", "error");
+            return;
+        }
+
+        var btn = document.getElementById("genBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳ 生成中...";
+        btn.classList.add("loading");
+        document.getElementById("loadingOverlay").classList.add("show");
+        document.getElementById("resultsArea").classList.remove("show");
+        document.getElementById("resultsGrid").innerHTML = "";
+        showStatus("", "");
+
+        var model = document.getElementById("modelSelect").value;
+        var size = document.getElementById("sizeSelect").value;
+        var quality = document.getElementById("qualitySelect").value;
+        var format = document.getElementById("formatSelect").value;
+        var n = parseInt(document.getElementById("nInput").value) || 1;
+        if (n < 1) n = 1;
+        if (n > 10) n = 10;
+
+        // 构建请求
+        var payload = {
+            model: model,
+            prompt: prompt,
+            n: n,
+            size: size,
+            quality: quality,
+            format: format
+        };
+
+        // gpt-image-2-all 带上图片
+        if (model === "gpt-image-2-all" && uploadedImages.length > 0) {
+            payload.image = uploadedImages;
+        }
+
+        fetch("/api/image/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            document.getElementById("loadingOverlay").classList.remove("show");
+            btn.disabled = false;
+            btn.textContent = "✨ 生成图片";
+            btn.classList.remove("loading");
+
+            if (data.error) {
+                showStatus("错误：" + data.error, "error");
+                return;
+            }
+
+            showStatus("生成成功！✅", "success");
+            displayResults(data.data);
+        })
+        .catch(function(err) {
+            document.getElementById("loadingOverlay").classList.remove("show");
+            btn.disabled = false;
+            btn.textContent = "✨ 生成图片";
+            btn.classList.remove("loading");
+            showStatus("请求失败：" + err.message, "error");
+        });
+    }
+
+    // ===== 展示结果 =====
+    function displayResults(images) {
+        var area = document.getElementById("resultsArea");
+        var grid = document.getElementById("resultsGrid");
+        grid.innerHTML = "";
+        area.classList.add("show");
+
+        for (var i = 0; i < images.length; i++) {
+            var img = images[i];
+            var card = document.createElement("div");
+            card.className = "result-card";
+
+            var imgHtml = "";
+            if (img.url) {
+                // 有 URL 直接显示
+                imgHtml = '<img src="' + img.url + '" alt="生成图片 ' + (i+1) + '">';
+                card.innerHTML = imgHtml +
+                    '<div class="img-actions">' +
+                    '<a class="btn-download" href="' + img.url + '" download="gptimage_' + (i+1) + '">⬇️ 下载</a>' +
+                    '<button class="btn-copy" onclick="copyUrl(\'' + img.url + '\')">🔗 复制链接</button>' +
+                    '</div>';
+            } else if (img.b64_json) {
+                // base64 数据，显示并支持下载
+                var src = "data:image/png;base64," + img.b64_json;
+                imgHtml = '<img src="' + src + '" alt="生成图片 ' + (i+1) + '">';
+                card.innerHTML = imgHtml +
+                    '<div class="img-actions">' +
+                    '<a class="btn-download" href="' + src + '" download="gptimage_' + (i+1) + '.png">⬇️ 下载</a>' +
+                    '<button class="btn-copy" onclick="copyUrl(\'' + src + '\')">🔗 复制图片</button>' +
+                    '</div>';
+            }
+
+            if (img.revised_prompt) {
+                card.innerHTML += '<div class="revised-prompt">📝 优化后的提示词：' + escapeHtml(img.revised_prompt) + '</div>';
+            }
+
+            grid.appendChild(card);
+        }
+    }
+
+    // ===== 工具函数 =====
+    function showStatus(msg, type) {
+        var el = document.getElementById("statusMsg");
+        el.textContent = msg;
+        el.className = "status-msg " + type;
+    }
+
+    function copyUrl(url) {
+        var ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        alert("已复制到剪贴板");
+    }
+
+    function escapeHtml(text) {
+        var div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    </script>
+</body>
+</html>

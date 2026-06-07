@@ -112,11 +112,21 @@ def init_db():
     cursor.execute("""
         create table if not exists user_config (
             email text primary key,
-            api_key text default null
+            api_key text default null,
+            image_api_key text default null
         )
     """)
     # config = 配置（ken fi ge 肯菲格）
     # api_key = API 密钥
+    # image_api_key = 图片生成 API 密钥
+
+    # 兼容旧数据库（加 image_api_key 列，PostgreSQL 版）
+    cursor.execute("""
+        select column_name from information_schema.columns
+        where table_name='user_config' and column_name='image_api_key'
+    """)
+    if not cursor.fetchone():
+        cursor.execute("alter table user_config add column image_api_key text default null")
 
     conn.commit()
 
@@ -248,6 +258,28 @@ def save_api_key(email, api_key):
     cursor.execute("""
         insert into user_config (email, api_key) values (%s, %s)
         on conflict(email) do update set api_key = %s
+    """, [email, api_key, api_key])
+    conn.commit()
+    conn.close()
+
+
+def get_image_api_key(email):
+    """获取保存的图片生成 API Key"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("select image_api_key from user_config where email = %s", [email])
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def save_image_api_key(email, api_key):
+    """保存图片生成 API Key（不影响已有的 DeepSeek Key）"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        insert into user_config (email, image_api_key) values (%s, %s)
+        on conflict(email) do update set image_api_key = %s
     """, [email, api_key, api_key])
     conn.commit()
     conn.close()
@@ -657,6 +689,109 @@ def api_chat_clear():
 
     clear_chat_history(email)
     return jsonify({"success": True})
+
+
+# =============================================
+# 图片生成（GPT Image-2）
+# =============================================
+
+IMAGE_GEN_URL = "https://jeniya.cn/v1/images/generations"
+# IMAGE_GEN = 图片生成
+
+
+@app.route("/image-gen", methods=["GET", "POST"])
+def image_gen_page():
+    """图片生成页面"""
+    email = session.get("email")
+    if not email:
+        return redirect("/login")
+
+    if request.method == "POST":
+        # 保存图片 API Key
+        image_key = request.form.get("image_api_key")
+        if image_key:
+            save_image_api_key(email, image_key)
+            return redirect("/image-gen")
+
+    image_api_key = get_image_api_key(email)
+    return render_template("image_gen.html",
+                         email=email,
+                         image_api_key=image_api_key)
+
+
+@app.route("/api/image/generate", methods=["POST"])
+def api_image_generate():
+    """调用图片生成 API"""
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "未登录"}), 401
+
+    api_key = get_image_api_key(email)
+    if not api_key:
+        return jsonify({"error": "请先设置图片生成 API Key"}), 400
+
+    data = request.get_json()
+    model = data.get("model", "gpt-image-2")
+    prompt = data.get("prompt", "")
+    size = data.get("size", "1024x1024")
+    n = data.get("n", 1)
+    quality = data.get("quality", "auto")
+    fmt = data.get("format", "jpeg")
+    images = data.get("images", [])  # 编辑/合并用的图片URL列表
+
+    if not prompt:
+        return jsonify({"error": "提示词不能为空"}), 400
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        # 构建请求体
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "n": n,
+            "size": size
+        }
+
+        # gpt-image-2 支持 quality 和 format
+        if model == "gpt-image-2":
+            payload["quality"] = quality
+            payload["format"] = fmt
+
+        # gpt-image-2-all 支持传入图片
+        if model == "gpt-image-2-all" and images:
+            payload["image"] = images
+
+        response = requests.post(
+            IMAGE_GEN_URL,
+            headers=headers,
+            json=payload,
+            timeout=120
+        )
+
+        result = response.json()
+
+        if "data" not in result:
+            return jsonify({"error": f"API 错误：{result}"}), 500
+
+        # 处理返回的图片数据（可能是 url 或 b64_json）
+        images_data = []
+        for img in result["data"]:
+            if "url" in img:
+                images_data.append({"url": img["url"], "revised_prompt": img.get("revised_prompt", "")})
+            elif "b64_json" in img:
+                images_data.append({"b64_json": img["b64_json"], "revised_prompt": img.get("revised_prompt", "")})
+
+        return jsonify({
+            "created": result.get("created"),
+            "data": images_data
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"请求失败：{str(e)}"}), 500
 
 
 # =============================================
