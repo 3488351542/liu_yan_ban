@@ -245,6 +245,28 @@ git bisect reset             # 结束查找
 
 ---
 
+### 3.7 ls-files — 查看跟踪的文件
+
+```bash
+git ls-files                 # 查看所有被 Git 跟踪的文件
+git ls-files 文件名           # 查看某个文件是否被跟踪
+```
+
+| 部分 | 翻译 | 拼音 |
+|------|------|------|
+| `ls-files` | list files = 列出文件 | ai ai si 埃埃斯 / fai er si 法伊尔斯 |
+
+**作用：** 看哪些文件被 Git 管着，`.gitignore` 是否生效。
+
+```bash
+# 常用场景
+git ls-files database.db      # 查 database.db 是否被跟踪
+                                # 有输出 = 被跟踪了
+                                # 没输出 = 没被跟踪（或被忽略了）
+```
+
+---
+
 ## 四、分支和提交（grow, mark and tweak your common history）
 
 ### 4.1 branch — 分支管理

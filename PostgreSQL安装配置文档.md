@@ -224,7 +224,44 @@ psql (PostgreSQL) 18.4
 
 ---
 
-## 四、创建数据库
+## 四、添加环境变量（让任意终端都能用 psql）
+
+> 安装后 PowerShell、cmd 可能找不到 `psql` 命令，需要把 PostgreSQL 目录加到系统 PATH 里。
+
+### 添加方法
+
+打开 **PowerShell（管理员）**，执行：
+
+```powershell
+[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";D:\yonghu2xiadesuoyouruanjiantongyianzhuanglujing\postgresql\sql\bin", "User")
+```
+
+### 验证是否添加成功
+
+```powershell
+$env:Path -split ";" | Select-String -Pattern "postgresql"
+```
+
+显示以下内容即成功：
+
+```
+D:\yonghu2xiadesuoyouruanjiantongyianzhuanglujing\postgresql\sql\bin
+```
+
+### 添加后的效果
+
+| 终端 | 能用吗 |
+|:-----|:------:|
+| PowerShell | ✅ 关掉重开即可 |
+| cmd | ✅ 关掉重开即可 |
+| Git Bash | ✅ |
+| WSL（Linux子系统） | ✅ |
+
+**注意：** 添加后需要**关掉终端重新打开**才能生效，或在当前终端执行 `$env:Path = [Environment]::GetEnvironmentVariable("Path", "User")` 刷新。
+
+---
+
+## 五、创建数据库
 
 安装完成后，创建一个供项目使用的数据库：
 
@@ -249,7 +286,7 @@ CREATE DATABASE message_board;
 
 ---
 
-## 五、SQLite vs PostgreSQL 对比
+## 六、SQLite vs PostgreSQL 对比
 
 | 对比项 | SQLite（之前） | PostgreSQL（之后） |
 |--------|---------------|-------------------|
@@ -262,7 +299,7 @@ CREATE DATABASE message_board;
 
 ---
 
-## 六、常用管理命令
+## 七、常用管理命令
 
 ### 启动/停止 PostgreSQL 服务
 
@@ -306,7 +343,7 @@ psql -U postgres -d message_board  # 连接指定库
 
 ---
 
-## 七、注意事项
+## 八、注意事项
 
 1. **密码别忘：** 安装时设的密码 `123456`，后面连接数据库每次都要用
 2. **端口冲突：** 如果 5432 被占用，安装时可以改成别的（如 5433）

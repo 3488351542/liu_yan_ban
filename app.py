@@ -7,7 +7,8 @@ from flask import (Flask, render_template, request, session,
 # Response = 响应（rui si pao en si 瑞斯泡恩si）
 # stream = 流（si de rui mu 斯德瑞姆）—— 一个字一个字输出
 # stream_with_context = 带上下文的流式输出
-import sqlite3
+import psycopg2
+import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import requests
@@ -41,16 +42,28 @@ def get_now():
     return datetime.utcnow() + timedelta(hours=8)
 
 
+def get_db():
+    """连接 PostgreSQL"""
+    conn = psycopg2.connect(
+        host="localhost",
+        port=5432,
+        database="message_board",
+        user="postgres",
+        password="123456"
+    )
+    return conn
+
+
 def init_db():
     """初始化数据库"""
 
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
 
     # 留言表（带 reply_to 字段）
     cursor.execute("""
         create table if not exists messages (
-            id integer primary key autoincrement,
+            id serial primary key,
             username text not null,
             content text not null,
             reply_to integer default null,
@@ -64,7 +77,7 @@ def init_db():
     # 用户表（带 role 字段）
     cursor.execute("""
         create table if not exists users (
-            id integer primary key autoincrement,
+            id serial primary key,
             email text not null unique,
             password text not null,
             role text default 'user',
@@ -75,26 +88,10 @@ def init_db():
     # 'user' = 普通用户
     # 'admin' = 管理员
 
-    # 兼容旧数据库
-    try:
-        cursor.execute("select role from users limit 1")
-    except:
-        cursor.execute("alter table users add column role text default 'user'")
-
-    try:
-        cursor.execute("select reply_to from messages limit 1")
-    except:
-        cursor.execute("alter table messages add column reply_to integer default null")
-
-    try:
-        cursor.execute("select user_email from messages limit 1")
-    except:
-        cursor.execute("alter table messages add column user_email text default null")
-
     # AI 对话历史表
     cursor.execute("""
         create table if not exists chat_messages (
-            id integer primary key autoincrement,
+            id serial primary key,
             user_email text not null,
             role text not null,
             content text not null,
@@ -119,16 +116,16 @@ def init_db():
     conn.commit()
 
     # 创建管理员账号（如果不存在）
-    cursor.execute("select * from users where email = ?", [ADMIN_EMAIL])
+    cursor.execute("select * from users where email = %s", [ADMIN_EMAIL])
     if not cursor.fetchone():
         hashed = generate_password_hash("123456")
         cursor.execute(
-            "insert into users (email, password, role) values (?, ?, 'admin')",
+            "insert into users (email, password, role) values (%s, %s, 'admin')",
             [ADMIN_EMAIL, hashed]
         )
     else:
         # 确保已有账号是 admin 角色
-        cursor.execute("update users set role = 'admin' where email = ?", [ADMIN_EMAIL])
+        cursor.execute("update users set role = 'admin' where email = %s", [ADMIN_EMAIL])
 
     conn.commit()
     conn.close()
@@ -136,9 +133,8 @@ def init_db():
 
 def get_messages():
     """读取所有留言"""
-    conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute("select * from messages order by created_at desc")
     messages = cursor.fetchall()
     conn.close()
@@ -147,10 +143,10 @@ def get_messages():
 
 def save_message(username, content, reply_to=None, user_email=None):
     """保存留言"""
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "insert into messages (username, content, reply_to, user_email) values (?, ?, ?, ?)",
+        "insert into messages (username, content, reply_to, user_email) values (%s, %s, %s, %s)",
         (username, content, reply_to, user_email)
     )
     conn.commit()
@@ -159,19 +155,19 @@ def save_message(username, content, reply_to=None, user_email=None):
 
 def delete_message(msg_id, user_email):
     """删除留言（只有管理员或留言者本人可删）"""
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
     # 先查这条留言是谁发的
-    cursor.execute("select user_email from messages where id = ?", [msg_id])
+    cursor.execute("select user_email from messages where id = %s", [msg_id])
     msg = cursor.fetchone()
     if msg:
         msg_email = msg[0]
         # 查当前用户是不是 admin
-        cursor.execute("select role from users where email = ?", [user_email])
+        cursor.execute("select role from users where email = %s", [user_email])
         user = cursor.fetchone()
         is_admin = user and user[0] == "admin"
         if is_admin or msg_email == user_email:
-            cursor.execute("delete from messages where id = ?", [msg_id])
+            cursor.execute("delete from messages where id = %s", [msg_id])
             conn.commit()
             conn.close()
             return True
@@ -184,11 +180,11 @@ def delete_message(msg_id, user_email):
 def create_user(email, password):
     """创建用户"""
     hashed = generate_password_hash(password)
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
     try:
         cursor.execute(
-            "insert into users (email, password) values (?, ?)",
+            "insert into users (email, password) values (%s, %s)",
             (email, hashed)
         )
         conn.commit()
@@ -201,10 +197,9 @@ def create_user(email, password):
 
 def get_user_by_email(email):
     """查用户"""
-    conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute("select * from users where email = ?", [email])
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("select * from users where email = %s", [email])
     user = cursor.fetchone()
     conn.close()
     return user
@@ -233,9 +228,9 @@ def generate_qr(url):
 
 def get_api_key(email):
     """获取用户保存的 API Key"""
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("select api_key from user_config where email = ?", [email])
+    cursor.execute("select api_key from user_config where email = %s", [email])
     row = cursor.fetchone()
     conn.close()
     return row[0] if row else None
@@ -243,11 +238,11 @@ def get_api_key(email):
 
 def save_api_key(email, api_key):
     """保存用户的 API Key"""
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-        insert into user_config (email, api_key) values (?, ?)
-        on conflict(email) do update set api_key = ?
+        insert into user_config (email, api_key) values (%s, %s)
+        on conflict(email) do update set api_key = %s
     """, [email, api_key, api_key])
     conn.commit()
     conn.close()
@@ -255,14 +250,13 @@ def save_api_key(email, api_key):
 
 def get_chat_history(email, limit=50):
     """获取聊天历史"""
-    conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute("""
         select * from chat_messages
-        where user_email = ?
+        where user_email = %s
         order by id asc
-        limit ?
+        limit %s
     """, [email, limit])
     messages = cursor.fetchall()
     conn.close()
@@ -271,11 +265,11 @@ def get_chat_history(email, limit=50):
 
 def save_chat_message(email, role, content, model, reasoning=None):
     """保存聊天记录"""
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
         insert into chat_messages (user_email, role, content, reasoning, model)
-        values (?, ?, ?, ?, ?)
+        values (%s, %s, %s, %s, %s)
     """, [email, role, content, reasoning, model])
     conn.commit()
     conn.close()
@@ -283,9 +277,9 @@ def save_chat_message(email, role, content, model, reasoning=None):
 
 def clear_chat_history(email):
     """清空聊天历史"""
-    conn = sqlite3.connect("database.db")
+    conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("delete from chat_messages where user_email = ?", [email])
+    cursor.execute("delete from chat_messages where user_email = %s", [email])
     conn.commit()
     conn.close()
 
