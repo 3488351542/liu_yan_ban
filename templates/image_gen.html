@@ -253,19 +253,20 @@
 
         <!-- API Key -->
         <div class="api-section">
-            <form action="/image-gen" method="POST" class="api-row">
+            <div class="api-row">
                 <input type="password" name="image_api_key" id="image_api_key"
                        placeholder="输入图片生成 API Key（jeniya.cn）"
                        value="{{ image_api_key or '' }}">
-                <button type="submit">保存</button>
-            </form>
+                <button onclick="saveApiKey(this)">保存</button>
+            </div>
             <div class="api-link">
                 🔗 <a href="https://jeniya.cn" target="_blank">获取 API Key（简易 API 中转）</a>
                 <span style="color:#999;margin-left:6px;">支持 gpt-image-2 / gpt-image-2-all</span>
             </div>
-            {% if image_api_key %}
-            <div class="api-status">✅ API Key 已设置</div>
-            {% endif %}
+            <div class="api-status" id="apiStatus"
+                 style="{% if not image_api_key %}display:none;{% endif %}">
+                ✅ API Key 已设置
+            </div>
         </div>
 
         <!-- 参数区 -->
@@ -360,6 +361,34 @@
     <script>
     // ===== 全局变量 =====
     var uploadedImages = [];  // 已上传的图片 URL
+
+    // ===== AJAX 保存 API Key（不刷新页面） =====
+    function saveApiKey(btn) {
+        var key = document.getElementById("image_api_key").value;
+        if (!key) { alert("请输入 API Key"); return; }
+        btn.disabled = true;
+        btn.textContent = "保存中...";
+
+        fetch("/image-gen", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "image_api_key=" + encodeURIComponent(key)
+        })
+        .then(function(res) {
+            if (res.ok) {
+                document.querySelector(".api-status").style.display = "block";
+                btn.textContent = "已保存 ✅";
+                setTimeout(function() { btn.textContent = "保存"; btn.disabled = false; }, 2000);
+            } else {
+                btn.textContent = "保存失败";
+                btn.disabled = false;
+            }
+        })
+        .catch(function() {
+            btn.textContent = "保存失败";
+            btn.disabled = false;
+        });
+    }
 
     // ===== 模型切换 =====
     function toggleModelOptions() {
