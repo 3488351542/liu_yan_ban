@@ -19,6 +19,40 @@ import json
 import io
 import base64
 import qrcode
+import redis as redis_lib
+import json
+
+# Redis 连接（本地用 localhost，Railway 用 REDIS_URL）
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+try:
+    cache = redis_lib.from_url(REDIS_URL, decode_responses=True)
+    cache.ping()
+except:
+    cache = None
+
+
+def cached(timeout=30):
+    """缓存装饰器：缓存函数返回值，timeout=秒数"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            if cache is None:
+                return func(*args, **kwargs)
+            key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+            try:
+                result = cache.get(key)
+                if result:
+                    return json.loads(result)
+            except:
+                pass
+            result = func(*args, **kwargs)
+            try:
+                cache.setex(key, timeout, json.dumps(result, default=str))
+            except:
+                pass
+            return result
+        return wrapper
+    return decorator
+
 
 # 上传配置
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
@@ -285,8 +319,9 @@ def search_messages(query, page=1, per_page=20):
     return messages
 
 
-def get_hot_posts(email=None, limit=10):
-    """获取今日热榜前 N 条（今日发布，按点赞+评论数排序）"""
+@cached(30)
+def _get_hot_posts_raw(limit=10):
+    """获取今日热榜原始数据（缓存30秒，不含用户状态）"""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     today = get_now().strftime("%Y-%m-%d")
@@ -306,12 +341,23 @@ def get_hot_posts(email=None, limit=10):
             p["category"] = "message"
         if not p.get("likes_count"):
             p["likes_count"] = 0
-        if email:
+    conn.close()
+    return posts
+
+
+def get_hot_posts(email=None, limit=10):
+    """获取今日热榜（缓存 + 补用户点赞状态）"""
+    posts = _get_hot_posts_raw(limit)
+    if email:
+        conn = get_db()
+        cursor = conn.cursor()
+        for p in posts:
             cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, p["id"]])
             p["liked"] = cursor.fetchone() is not None
-        else:
+        conn.close()
+    else:
+        for p in posts:
             p["liked"] = False
-    conn.close()
     return posts
 
 
@@ -351,9 +397,10 @@ def save_message(username, content, reply_to=None, user_email=None, image_url=No
     """保存留言（支持分类，自动更新父帖评论数，返回新ID）"""
     conn = get_db()
     cursor = conn.cursor()
+    now = get_now()
     cursor.execute(
-        "insert into messages (username, content, reply_to, user_email, image_url, category) values (%s, %s, %s, %s, %s, %s)",
-        (username, content, reply_to, user_email, image_url, category)
+        "insert into messages (username, content, reply_to, user_email, image_url, category, created_at) values (%s, %s, %s, %s, %s, %s, %s)",
+        (username, content, reply_to, user_email, image_url, category, now)
     )
     if reply_to:
         cursor.execute("update messages set comments_count = comments_count + 1 where id = %s", [reply_to])
@@ -399,9 +446,10 @@ def create_user(email, password):
     conn = get_db()
     cursor = conn.cursor()
     try:
+        now = get_now()
         cursor.execute(
-            "insert into users (email, password) values (%s, %s)",
-            (email, hashed)
+            "insert into users (email, password, created_at) values (%s, %s, %s)",
+            (email, hashed, now)
         )
         conn.commit()
         return True
