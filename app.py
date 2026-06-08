@@ -196,16 +196,19 @@ def get_messages(category=None, page=1, per_page=20, email=None):
     offset = (page - 1) * per_page
     if category and category != "latest":
         cursor.execute(
-            "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to is null and m.category = %s order by m.created_at desc limit %s offset %s",
+            "select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.reply_to is null and m.category = %s order by m.created_at desc limit %s offset %s",
             [category, per_page, offset]
         )
     else:
         cursor.execute(
-            "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to is null order by m.created_at desc limit %s offset %s",
+            "select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.reply_to is null order by m.created_at desc limit %s offset %s",
             [per_page, offset]
         )
     messages = cursor.fetchall()
     for msg in messages:
+        # 用昵称覆盖用户名
+        if msg.get("nickname"):
+            msg["username"] = msg["nickname"]
         # 首页不加载回复列表（点击计数跳转到详情页查看）
         msg["replies_list"] = []
         msg["replies_count"] = msg.get("comments_count") or 0
@@ -265,13 +268,19 @@ def search_messages(query, page=1, per_page=20):
     offset = (page - 1) * per_page
     pattern = f"%{query}%"
     cursor.execute(
-        "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to is null and m.content ilike %s order by m.created_at desc limit %s offset %s",
+        "select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.reply_to is null and m.content ilike %s order by m.created_at desc limit %s offset %s",
         [pattern, per_page, offset]
     )
     messages = cursor.fetchall()
     for msg in messages:
-        cursor.execute("select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to = %s order by m.created_at asc", [msg["id"]])
-        msg["replies_list"] = cursor.fetchall()
+        if msg.get("nickname"):
+            msg["username"] = msg["nickname"]
+        cursor.execute("select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.reply_to = %s order by m.created_at asc", [msg["id"]])
+        replies = cursor.fetchall()
+        for r in replies:
+            if r.get("nickname"):
+                r["username"] = r["nickname"]
+        msg["replies_list"] = replies
     conn.close()
     return messages
 
@@ -282,7 +291,7 @@ def get_hot_posts(email=None, limit=10):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     today = get_now().strftime("%Y-%m-%d")
     cursor.execute(
-        """select m.*, u.avatar_url as author_avatar from messages m
+        """select m.*, u.avatar_url as author_avatar, u.nickname from messages m
            left join users u on m.user_email = u.email
            where m.reply_to is null and m.created_at::date = %s
            order by (m.likes_count + m.comments_count) desc, m.created_at desc limit %s""",
@@ -290,6 +299,8 @@ def get_hot_posts(email=None, limit=10):
     )
     posts = cursor.fetchall()
     for p in posts:
+        if p.get("nickname"):
+            p["username"] = p["nickname"]
         p["replies_count"] = p.get("comments_count") or 0
         if not p.get("category"):
             p["category"] = "message"
@@ -308,14 +319,20 @@ def get_post_detail(post_id, email=None):
     """获取帖子详情 + 全部评论"""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute("select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.id = %s", [post_id])
+    cursor.execute("select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.id = %s", [post_id])
     post = cursor.fetchone()
     if not post:
         conn.close()
         return None
+    # 用昵称覆盖用户名
+    if post.get("nickname"):
+        post["username"] = post["nickname"]
     # 全部评论（正序）
-    cursor.execute("select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to = %s order by m.created_at asc", [post_id])
+    cursor.execute("select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.reply_to = %s order by m.created_at asc", [post_id])
     post["replies_list"] = cursor.fetchall()
+    for r in post["replies_list"]:
+        if r.get("nickname"):
+            r["username"] = r["nickname"]
     post["replies_count"] = post.get("comments_count") or len(post["replies_list"])
     # 点赞+收藏状态
     if email:
@@ -418,11 +435,13 @@ def get_user_posts(email, page=1, per_page=20):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     offset = (page - 1) * per_page
     cursor.execute(
-        "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.user_email = %s and m.reply_to is null order by m.created_at desc limit %s offset %s",
+        "select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.user_email = %s and m.reply_to is null order by m.created_at desc limit %s offset %s",
         [email, per_page, offset]
     )
     posts = cursor.fetchall()
     for p in posts:
+        if p.get("nickname"):
+            p["username"] = p["nickname"]
         p["replies_count"] = p.get("comments_count") or 0
         if not p.get("category"):
             p["category"] = "message"
@@ -444,14 +463,17 @@ def get_user_favorites(email, page=1, per_page=20):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     offset = (page - 1) * per_page
     cursor.execute(
-        """select m.* from messages m
+        """select m.*, u.avatar_url as author_avatar, u.nickname from messages m
            inner join favorites f on m.id = f.message_id
+           left join users u on m.user_email = u.email
            where f.user_email = %s and m.reply_to is null
            order by f.created_at desc limit %s offset %s""",
         [email, per_page, offset]
     )
     posts = cursor.fetchall()
     for p in posts:
+        if p.get("nickname"):
+            p["username"] = p["nickname"]
         p["replies_count"] = p.get("comments_count") or 0
         if not p.get("category"):
             p["category"] = "message"
@@ -490,14 +512,18 @@ def get_user_comments(email, page=1, per_page=20):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     offset = (page - 1) * per_page
     cursor.execute(
-        """select c.*, p.content as parent_content
+        """select c.*, p.content as parent_content, u.nickname
            from messages c
            left join messages p on c.reply_to = p.id
+           left join users u on c.user_email = u.email
            where c.user_email = %s and c.reply_to is not null
            order by c.created_at desc limit %s offset %s""",
         [email, per_page, offset]
     )
     comments = cursor.fetchall()
+    for c in comments:
+        if c.get("nickname"):
+            c["username"] = c["nickname"]
     conn.close()
     return comments
 
