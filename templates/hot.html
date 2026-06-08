@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>今日热榜 - 承德应职院微墙</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            padding: 14px 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header a { color: white; text-decoration: none; font-size: 20px; }
+        .header h1 { font-size: 16px; font-weight: bold; flex: 1; }
+        .header .fire { font-size: 22px; animation: hot-pulse 1.5s infinite; }
+        @keyframes hot-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+
+        .container { max-width: 700px; margin: 0 auto; padding: 10px 12px; }
+
+        .hot-card {
+            background: white; border-radius: 14px; padding: 14px 16px;
+            margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            display: flex; align-items: center; gap: 14px;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .hot-card:active { transform: scale(0.98); }
+        .hot-card .rank-num {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold; flex-shrink: 0;
+        }
+        .rank-1 { background: linear-gradient(135deg,#f9ca24,#f0932b); color:white; font-size:22px; }
+        .rank-2 { background: linear-gradient(135deg,#a0a0a0,#7f8c8d); color:white; font-size:20px; }
+        .rank-3 { background: linear-gradient(135deg,#e17055,#d35400); color:white; font-size:18px; }
+        .rank-n { background:#e0e0e0; color:#999; font-size:16px; }
+
+        .hot-card .hot-info { flex:1; min-width:0; }
+        .hot-card .hot-text {
+            font-size: 14px; color: #333; line-height: 1.5;
+            overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+        }
+        .hot-card .hot-meta { font-size: 11px; color: #bbb; margin-top: 4px; display: flex; gap: 8px; align-items:center; }
+        .hot-card .hot-meta .cat-tag {
+            font-size: 10px; padding:1px 8px; border-radius:8px; font-weight:bold;
+        }
+        .cat-tag-message { background:#e8ebff; color:#667eea; }
+        .cat-tag-daily { background:#fff3e0; color:#e67e22; }
+        .cat-tag-used { background:#e8f5e9; color:#27ae60; }
+        .hot-card .hot-stats {
+            display: flex; gap: 12px; flex-shrink: 0;
+        }
+        .hot-card .hot-stats .hs-item { text-align: center; }
+        .hot-card .hot-stats .hs-num { font-size: 16px; font-weight: bold; }
+        .hot-card .hot-stats .hs-label { font-size: 10px; color: #bbb; }
+        .hot-card .hot-stats .hs-like { color: #e74c3c; }
+        .hot-card .hot-stats .hs-comment { color: #667eea; }
+
+        .empty-state {
+            text-align: center; padding: 80px 20px; color: #ccc;
+        }
+        .empty-state .big-icon { font-size: 64px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+        .empty-state .sub { font-size: 12px; color: #ddd; margin-top: 6px; }
+
+        .date-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white; padding: 4px 14px; border-radius: 16px;
+            font-size: 12px; font-weight: bold; margin-bottom: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .header { padding: 12px; }
+            .header h1 { font-size: 14px; }
+            .container { padding: 8px 10px; }
+            .hot-card { padding: 12px 14px; border-radius: 12px; }
+            .hot-card .rank-num { width: 30px; height: 30px; font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="javascript:history.back()">←</a>
+        <span class="fire">🔥</span>
+        <h1>今日热榜</h1>
+    </div>
+    <div class="container">
+        {% if posts %}
+        <div class="date-badge">📅 {{ today }}</div>
+        {% for p in posts %}
+        <div class="hot-card" onclick="savePos();window.location.href='/post/{{ p.id }}'">
+            <div class="rank-num {% if loop.index <= 3 %}rank-{{ loop.index }}{% else %}rank-n{% endif %}">
+                {% if loop.index == 1 %}🥇
+                {% elif loop.index == 2 %}🥈
+                {% elif loop.index == 3 %}🥉
+                {% elif loop.index == 4 %}4
+                {% elif loop.index == 5 %}5
+                {% elif loop.index == 6 %}6
+                {% elif loop.index == 7 %}7
+                {% elif loop.index == 8 %}8
+                {% elif loop.index == 9 %}9
+                {% elif loop.index == 10 %}10
+                {% endif %}
+            </div>
+            <div class="hot-info">
+                <div class="hot-text">{{ p.content }}</div>
+                <div class="hot-meta">
+                    <span>{{ p.username }}</span>
+                    <span class="cat-tag cat-tag-{{ p.category }}">
+                        {% if p.category == 'message' %}留言板
+                        {% elif p.category == 'daily' %}日常投稿
+                        {% elif p.category == 'used' %}二手闲置
+                        {% else %}留言板{% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="hot-stats">
+                <div class="hs-item">
+                    <div class="hs-num hs-like">❤️ {{ p.likes_count or 0 }}</div>
+                    <div class="hs-label">点赞</div>
+                </div>
+                <div class="hs-item">
+                    <div class="hs-num hs-comment">💬 {{ p.comments_count or 0 }}</div>
+                    <div class="hs-label">评论</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="big-icon">📭</div>
+            <p>今日暂无热门帖子</p>
+            <div class="sub">快去发布第一条吧！</div>
+        </div>
+        {% endif %}
+    </div>
+    <script>
+    function savePos() {
+        try { sessionStorage.setItem("hot_scroll", window.scrollY || 0); } catch(e) {}
+    }
+    window.addEventListener('pageshow', function() {
+        try {
+            var s = parseInt(sessionStorage.getItem("hot_scroll")) || 0;
+            if (s > 0) { setTimeout(function(){ window.scrollTo(0,s); }, 100); sessionStorage.removeItem("hot_scroll"); }
+        } catch(e) {}
+    });
+    </script>
+</body>
+</html>

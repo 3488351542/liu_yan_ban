@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>历史评论 - 承德应职院微墙</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 14px 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header a { color: white; text-decoration: none; font-size: 20px; }
+        .header h1 { font-size: 16px; font-weight: bold; flex: 1; }
+        .container { max-width: 700px; margin: 0 auto; padding: 10px 12px; }
+
+        .comment-item {
+            background: white; border-radius: 12px;
+            padding: 14px 16px; margin-bottom: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .comment-header {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+        }
+        .comment-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #e0e0e0; display: flex; align-items: center;
+            justify-content: center; font-size: 12px; color: #999; flex-shrink: 0;
+        }
+        .comment-name { font-size: 13px; font-weight: 600; color: #667eea; }
+        .comment-time { font-size: 10px; color: #ccc; margin-left: auto; }
+        .comment-content { font-size: 14px; color: #333; line-height: 1.6; }
+        .comment-post {
+            margin-top: 8px; padding: 8px 10px;
+            background: #f9f9f9; border-radius: 8px; cursor: pointer;
+            font-size: 12px; color: #999; transition: background 0.2s;
+        }
+        .comment-post:active { background: #f0f0f0; }
+        .comment-post .cp-label { font-size: 10px; color: #bbb; }
+        .comment-post .cp-text {
+            color: #666; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; margin-top: 2px;
+        }
+
+        .empty-state {
+            text-align: center; padding: 80px 20px; color: #ccc;
+        }
+        .empty-state .big-icon { font-size: 64px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+
+        @media (max-width: 600px) {
+            .header { padding: 12px; }
+            .container { padding: 8px 10px; }
+            .comment-item { padding: 12px 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="javascript:history.back()">←</a>
+        <h1>💬 历史评论</h1>
+    </div>
+    <div class="container">
+        {% if comments %}
+            {% for c in comments %}
+            <div class="comment-item">
+                <div class="comment-header">
+                    <div class="comment-avatar">{{ c.username[:1] }}</div>
+                    <span class="comment-name">{{ c.username }}</span>
+                    <span class="comment-time">{{ c.created_at }}</span>
+                </div>
+                <div class="comment-content">{{ c.content }}</div>
+                {% if c.parent_content is not none %}
+                <div class="comment-post" onclick="savePos();window.location.href='/post/{{ c.reply_to }}'">
+                    <div class="cp-label">💬 回复了帖子：</div>
+                    <div class="cp-text">{{ c.parent_content[:80] }}{% if c.parent_content|length > 80 %}...{% endif %}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="big-icon">💬</div>
+                <p>还没有评论过任何帖子</p>
+            </div>
+        {% endif %}
+    </div>
+    <script>
+    function savePos() {
+        try { sessionStorage.setItem("comments_scroll", window.scrollY || 0); } catch(e) {}
+    }
+    window.addEventListener('pageshow', function() {
+        try {
+            var s = parseInt(sessionStorage.getItem("comments_scroll")) || 0;
+            if (s > 0) { setTimeout(function(){ window.scrollTo(0,s); }, 100); sessionStorage.removeItem("comments_scroll"); }
+        } catch(e) {}
+    });
+    </script>
+</body>
+</html>

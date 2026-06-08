@@ -196,6 +196,7 @@
             box-shadow: 0 1px 4px rgba(0,0,0,0.06);
             transition: box-shadow 0.2s;
         }
+        .post-card:hover { cursor: pointer; }
         .post-card:active { box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 
         /* 头部：头像+用户名+时间+标签 */
@@ -301,6 +302,8 @@
             50% { transform: scale(1.3); }
             100% { transform: scale(1); }
         }
+        .post-actions .fav-btn { font-size: 15px; }
+        .post-actions .fav-btn.favorited { color: #f9ca24; }
         .post-actions .btn-del { color: #e74c3c; }
         .post-actions .btn-del:hover { color: #c0392b; background: #ffe0e0; }
         .post-actions .reply-link { margin-left: auto; }
@@ -747,7 +750,7 @@
     <div class="post-list">
         {% if messages %}
             {% for msg in messages %}
-            <div class="post-card" id="post-{{ msg.id }}">
+            <div class="post-card" id="post-{{ msg.id }}" onclick="window.location.href='/post/{{ msg.id }}'">
                 <!-- 头部 -->
                 <div class="post-header">
                     <div class="post-avatar">{{ msg.username[:1] }}</div>
@@ -771,29 +774,25 @@
                 <!-- 图片 -->
                 {% if msg.image_url %}
                 <div class="post-images grid-1">
-                    <img src="{{ msg.image_url }}" alt="图片" onclick="viewImage(this.src)">
+                    <img src="{{ msg.image_url }}" alt="图片" onclick="event.stopPropagation();viewImage(this.src)">
                 </div>
                 {% endif %}
 
                 <!-- 操作栏 -->
-                <div class="post-actions">
+                <div class="post-actions" onclick="event.stopPropagation()">
                     <button class="{% if msg.liked %}liked{% endif %}" onclick="toggleLike({{ msg.id }})">
                         <span class="heart">{% if msg.liked %}❤️{% else %}🤍{% endif %}</span>
                         <span class="like-count">{{ msg.likes_count or 0 }}</span>
+                    </button>
+                    <button class="fav-btn {% if msg.favorited %}favorited{% endif %}" onclick="toggleFav({{ msg.id }}, this)">
+                        {% if msg.favorited %}⭐{% else %}☆{% endif %}
                     </button>
                     <a href="/post/{{ msg.id }}">
                         💬 <span class="reply-count-{{ msg.id }}">{{ msg.replies_count }}</span>
                     </a>
                     {% if admin or (email and email == msg.user_email) %}
-                    <button class="btn-del" onclick="deletePost({{ msg.id }})">🗑️</button>
+                    <button class="btn-del" onclick="event.stopPropagation();deletePost({{ msg.id }})">🗑️</button>
                     {% endif %}
-                </div>
-
-                <!-- 回复入口（点击跳详情页看全部+回复） -->
-                <div class="reply-entry">
-                    <a href="/post/{{ msg.id }}" class="reply-link">
-                        💬 {{ msg.replies_count }}
-                    </a>
                 </div>
             </div>
             {% endfor %}
@@ -812,7 +811,7 @@
             <span>首页</span>
         </a>
         <button class="publish-btn" onclick="openPublish()">＋</button>
-        <a href="{% if email %}/{% else %}/login{% endif %}">
+        <a href="{% if email %}/my{% else %}/login{% endif %}">
             <span class="nav-icon">👤</span>
             <span>{% if email %}{{ email.split('@')[0][:6] }}{% else %}我的{% endif %}</span>
         </a>
@@ -1249,6 +1248,24 @@
                 heartSpan.textContent = "🤍";
             }
             countSpan.textContent = data.count;
+        })
+        .catch(function() { showToast("❌ 操作失败"); });
+    }
+
+    function toggleFav(msgId, btn) {
+        fetch("/api/favorite/" + msgId, { method: "POST" })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) { showToast("❌ " + data.error); return; }
+            if (data.favorited) {
+                btn.classList.add("favorited");
+                btn.innerHTML = "⭐";
+                showToast("✅ 已收藏");
+            } else {
+                btn.classList.remove("favorited");
+                btn.innerHTML = "☆";
+                showToast("已取消收藏");
+            }
         })
         .catch(function() { showToast("❌ 操作失败"); });
     }

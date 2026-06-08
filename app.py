@@ -215,8 +215,14 @@ def get_messages(category=None, page=1, per_page=20, email=None):
                 [email, msg["id"]]
             )
             msg["liked"] = cursor.fetchone() is not None
+            cursor.execute(
+                "select id from favorites where user_email = %s and message_id = %s",
+                [email, msg["id"]]
+            )
+            msg["favorited"] = cursor.fetchone() is not None
         else:
             msg["liked"] = False
+            msg["favorited"] = False
 
         # 兼容旧数据没有分类
         if not msg.get("category"):
@@ -270,12 +276,15 @@ def search_messages(query, page=1, per_page=20):
 
 
 def get_hot_posts(email=None, limit=10):
-    """获取热榜前 N 条（按点赞+评论数排序）"""
+    """获取今日热榜前 N 条（今日发布，按点赞+评论数排序）"""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    today = get_now().strftime("%Y-%m-%d")
     cursor.execute(
-        "select * from messages where reply_to is null order by (likes_count + comments_count) desc, created_at desc limit %s",
-        [limit]
+        """select * from messages
+           where reply_to is null and created_at::date = %s
+           order by (likes_count + comments_count) desc, created_at desc limit %s""",
+        [today, limit]
     )
     posts = cursor.fetchall()
     for p in posts:
@@ -306,12 +315,15 @@ def get_post_detail(post_id, email=None):
     cursor.execute("select * from messages where reply_to = %s order by created_at asc", [post_id])
     post["replies_list"] = cursor.fetchall()
     post["replies_count"] = post.get("comments_count") or len(post["replies_list"])
-    # 点赞状态
+    # 点赞+收藏状态
     if email:
         cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, post_id])
         post["liked"] = cursor.fetchone() is not None
+        cursor.execute("select id from favorites where user_email = %s and message_id = %s", [email, post_id])
+        post["favorited"] = cursor.fetchone() is not None
     else:
         post["liked"] = False
+        post["favorited"] = False
     conn.close()
     return post
 
@@ -394,6 +406,138 @@ def is_admin(email):
     """判断用户是否是管理员"""
     user = get_user_by_email(email)
     return user and user["role"] == "admin"
+
+
+# ========== 用户个人资料 ==========
+
+def get_user_posts(email, page=1, per_page=20):
+    """获取用户发布的帖子"""
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    offset = (page - 1) * per_page
+    cursor.execute(
+        "select * from messages where user_email = %s and reply_to is null order by created_at desc limit %s offset %s",
+        [email, per_page, offset]
+    )
+    posts = cursor.fetchall()
+    for p in posts:
+        p["replies_count"] = p.get("comments_count") or 0
+        if not p.get("category"):
+            p["category"] = "message"
+        if not p.get("likes_count"):
+            p["likes_count"] = 0
+        # 点赞状态
+        cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, p["id"]])
+        p["liked"] = cursor.fetchone() is not None
+        # 收藏状态
+        cursor.execute("select id from favorites where user_email = %s and message_id = %s", [email, p["id"]])
+        p["favorited"] = cursor.fetchone() is not None
+    conn.close()
+    return posts
+
+
+def get_user_favorites(email, page=1, per_page=20):
+    """获取用户收藏的帖子"""
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    offset = (page - 1) * per_page
+    cursor.execute(
+        """select m.* from messages m
+           inner join favorites f on m.id = f.message_id
+           where f.user_email = %s and m.reply_to is null
+           order by f.created_at desc limit %s offset %s""",
+        [email, per_page, offset]
+    )
+    posts = cursor.fetchall()
+    for p in posts:
+        p["replies_count"] = p.get("comments_count") or 0
+        if not p.get("category"):
+            p["category"] = "message"
+        if not p.get("likes_count"):
+            p["likes_count"] = 0
+        cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, p["id"]])
+        p["liked"] = cursor.fetchone() is not None
+        p["favorited"] = True  # 收藏列表里的当然已收藏
+    conn.close()
+    return posts
+
+
+def get_user_stats(email):
+    """获取用户统计信息"""
+    conn = get_db()
+    cursor = conn.cursor()
+    # 帖子数
+    cursor.execute("select count(*) from messages where user_email = %s and reply_to is null", [email])
+    post_count = cursor.fetchone()[0]
+    # 收到的点赞数
+    cursor.execute(
+        "select count(*) from likes l join messages m on l.message_id = m.id where m.user_email = %s",
+        [email]
+    )
+    likes_received = cursor.fetchone()[0]
+    # 收藏数（收藏了多少帖子）
+    cursor.execute("select count(*) from favorites where user_email = %s", [email])
+    fav_count = cursor.fetchone()[0]
+    conn.close()
+    return {"post_count": post_count, "likes_received": likes_received, "fav_count": fav_count}
+
+
+def get_user_comments(email, page=1, per_page=20):
+    """获取用户的历史评论（带原帖内容）"""
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    offset = (page - 1) * per_page
+    cursor.execute(
+        """select c.*, p.content as parent_content
+           from messages c
+           left join messages p on c.reply_to = p.id
+           where c.user_email = %s and c.reply_to is not null
+           order by c.created_at desc limit %s offset %s""",
+        [email, per_page, offset]
+    )
+    comments = cursor.fetchall()
+    conn.close()
+    return comments
+
+
+def toggle_favorite(message_id, user_email):
+    """切换收藏状态"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("select id from favorites where user_email = %s and message_id = %s", [user_email, message_id])
+    existing = cursor.fetchone()
+    if existing:
+        cursor.execute("delete from favorites where id = %s", [existing[0]])
+        favorited = False
+    else:
+        cursor.execute("insert into favorites (user_email, message_id) values (%s, %s)", [user_email, message_id])
+        favorited = True
+    conn.commit()
+    conn.close()
+    return {"favorited": favorited}
+
+
+def update_user_profile(email, nickname=None, phone=None, avatar_url=None):
+    """更新用户资料"""
+    conn = get_db()
+    cursor = conn.cursor()
+    updates = []
+    params = []
+    if nickname is not None:
+        updates.append("nickname = %s")
+        params.append(nickname)
+    if phone is not None:
+        updates.append("phone = %s")
+        params.append(phone)
+    if avatar_url is not None:
+        updates.append("avatar_url = %s")
+        params.append(avatar_url)
+    if updates:
+        params.append(email)
+        cursor.execute(f"update users set {', '.join(updates)} where email = %s", params)
+        conn.commit()
+    conn.close()
+    return True
 
 
 # ========== 二维码 ==========
@@ -539,7 +683,7 @@ def api_search():
     if not q:
         return jsonify({"messages": []})
     messages = search_messages(q, page)
-    # 标记点赞状态
+    # 标记点赞+收藏状态
     for msg in messages:
         if email:
             cursor = None
@@ -547,9 +691,12 @@ def api_search():
             cursor = conn.cursor()
             cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, msg["id"]])
             msg["liked"] = cursor.fetchone() is not None
+            cursor.execute("select id from favorites where user_email = %s and message_id = %s", [email, msg["id"]])
+            msg["favorited"] = cursor.fetchone() is not None
             conn.close()
         else:
             msg["liked"] = False
+            msg["favorited"] = False
         msg["replies_count"] = msg.get("comments_count") or 0
     return jsonify({"messages": messages})
 
@@ -608,6 +755,79 @@ def post_detail(msg_id):
                          email=email,
                          user=user,
                          admin=admin)
+
+
+@app.route("/my")
+def my_profile():
+    """我的页面"""
+    email = session.get("email")
+    if not email:
+        return redirect("/login")
+    user = get_user_by_email(email)
+    admin = is_admin(email)
+    page = int(request.args.get("page", 1))
+    tab = request.args.get("tab", "")
+
+    if tab == "favorites":
+        posts = get_user_favorites(email, page)
+    elif tab == "posts":
+        posts = get_user_posts(email, page)
+    else:
+        posts = []
+
+    stats = get_user_stats(email)
+    return render_template("my.html",
+                           posts=posts,
+                           user=user,
+                           email=email,
+                           admin=admin,
+                           stats=stats,
+                           current_tab=tab,
+                           current_page=page)
+
+
+@app.route("/hot")
+def hot_page():
+    """今日热榜独立页面"""
+    email = session.get("email")
+    posts = get_hot_posts(email, 20)
+    today = get_now().strftime("%Y-%m-%d")
+    return render_template("hot.html", posts=posts, today=today)
+
+
+@app.route("/my/comments")
+def my_comments():
+    """我的历史评论"""
+    email = session.get("email")
+    if not email:
+        return redirect("/login")
+    page = int(request.args.get("page", 1))
+    comments = get_user_comments(email, page)
+    return render_template("comments.html", comments=comments, email=email)
+
+
+@app.route("/api/favorite/<int:msg_id>", methods=["POST"])
+def api_favorite(msg_id):
+    """切换收藏（AJAX）"""
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "未登录"}), 401
+    result = toggle_favorite(msg_id, email)
+    return jsonify(result)
+
+
+@app.route("/api/profile/update", methods=["POST"])
+def api_profile_update():
+    """更新个人资料（AJAX）"""
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "未登录"}), 401
+    data = request.get_json()
+    nickname = data.get("nickname")
+    phone = data.get("phone")
+    avatar_url = data.get("avatar_url")
+    update_user_profile(email, nickname=nickname, phone=phone, avatar_url=avatar_url)
+    return jsonify({"ok": True})
 
 
 @app.route("/submit", methods=["POST"])
@@ -1121,4 +1341,4 @@ init_db()
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    app.run(debug=True, host="0.0.0.0", port=5000)

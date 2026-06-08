@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的 - 承德应职院微墙</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding-bottom: 65px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 14px 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header a { color: white; text-decoration: none; font-size: 20px; }
+        .header h1 { font-size: 16px; font-weight: bold; flex: 1; }
+
+        /* ===== 个人信息 ===== */
+        .profile-card {
+            background: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .profile-avatar {
+            width: 68px; height: 68px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 30px; font-weight: bold;
+            flex-shrink: 0; cursor: pointer;
+        }
+        .profile-avatar img {
+            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+        }
+        .profile-info { flex: 1; min-width: 0; }
+        .profile-name {
+            font-size: 18px; font-weight: bold; color: #333;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .profile-name .edit-btn {
+            font-size: 13px; color: #667eea; cursor: pointer;
+        }
+        .profile-school {
+            font-size: 12px; color: #999; margin-top: 2px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .profile-school .badge {
+            font-size: 10px; background: #e8ebff; color: #667eea;
+            padding: 1px 8px; border-radius: 8px; font-weight: bold;
+        }
+        .profile-email { font-size: 11px; color: #ccc; margin-top: 1px; }
+        .profile-stats {
+            display: flex; gap: 12px; margin-top: 6px;
+        }
+        .profile-stats .ps-item { font-size: 12px; color: #999; }
+        .profile-stats .ps-num { font-weight: bold; color: #333; font-size: 14px; }
+
+        /* ===== 功能入口网格 ===== */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 14px 14px 20px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .menu-card {
+            background: white; border-radius: 14px; padding: 18px 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            cursor: pointer; transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center;
+            text-align: center; gap: 6px;
+            position: relative; overflow: hidden;
+        }
+        .menu-card:active { transform: scale(0.96); }
+        .menu-card .menu-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+        }
+        .menu-card .menu-title { font-size: 13px; font-weight: 600; color: #333; }
+        .menu-card .menu-desc { font-size: 10px; color: #bbb; }
+        .menu-card .coming-soon {
+            position: absolute; top: 0; left: 0; right: 0;
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            color: white; font-size: 9px; text-align: center;
+            padding: 2px; font-weight: bold;
+        }
+        .menu-card.disabled { opacity: 0.7; }
+        .menu-icon.posts { background: #e8ebff; }
+        .menu-icon.fav { background: #fff8e1; }
+        .menu-icon.comments { background: #e8f5e9; }
+        .menu-icon.hot { background: #fff0e0; }
+        .menu-icon.wait { background: #f3e8ff; }
+        .menu-icon.earn { background: #fff3e0; }
+        .menu-icon.service { background: #e3f2fd; }
+        .menu-icon.school { background: #fce4ec; }
+
+        /* ===== 帖子列表（Tab 模式下） ===== */
+        .tab-bar {
+            display: flex; background: white;
+            border-bottom: 1px solid #eee;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .tab-bar a {
+            flex: 1; text-align: center; padding: 12px 4px;
+            font-size: 13px; color: #999; text-decoration: none;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-bar a.active { color: #667eea; border-bottom-color: #667eea; font-weight: bold; }
+
+        .post-list { padding: 8px 12px; max-width: 700px; margin: 0 auto; }
+        .post-card {
+            background: white; border-radius: 12px; padding: 14px 16px;
+            margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            cursor: pointer;
+        }
+        .post-card:active { box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .post-header {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+        }
+        .post-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 16px; font-weight: bold; flex-shrink: 0;
+        }
+        .post-user-info { flex: 1; min-width: 0; }
+        .post-username { font-size: 14px; font-weight: 600; color: #333; }
+        .post-meta { font-size: 11px; color: #bbb; display: flex; gap: 6px; }
+        .post-category {
+            font-size: 10px; padding: 1px 8px; border-radius: 8px; font-weight: bold;
+        }
+        .cat-message { background: #e8ebff; color: #667eea; }
+        .cat-daily { background: #fff3e0; color: #e67e22; }
+        .cat-used { background: #e8f5e9; color: #27ae60; }
+        .post-content { font-size: 14px; line-height: 1.7; color: #333; white-space: pre-wrap; word-break: break-word; margin-bottom: 8px; }
+        .post-actions {
+            display: flex; align-items: center; gap: 16px;
+            padding-top: 8px; border-top: 1px solid #f5f5f5;
+        }
+        .post-actions button, .post-actions a {
+            display: flex; align-items: center; gap: 4px;
+            background: none; border: none; font-size: 13px;
+            color: #999; cursor: pointer; text-decoration: none;
+            padding: 4px 6px; border-radius: 4px;
+        }
+        .post-actions button:hover { background: #f5f5f5; }
+        .post-actions .liked { color: #e74c3c; }
+        .post-actions .favorited { color: #f9ca24; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #ccc; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+        .empty-state p { font-size: 14px; }
+
+        /* ===== 底部导航 ===== */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 55px; background: white; border-top: 1px solid #eee;
+            display: flex; align-items: center;
+            justify-content: space-around; z-index: 100;
+        }
+        .bottom-nav a {
+            display: flex; flex-direction: column; align-items: center;
+            text-decoration: none; color: #999; font-size: 10px; gap: 2px;
+        }
+        .bottom-nav a.active { color: #667eea; }
+        .bottom-nav a .nav-icon { font-size: 22px; line-height: 1; }
+        .bottom-nav .publish-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; display: flex; align-items: center;
+            justify-content: center; font-size: 28px; font-weight: bold;
+            box-shadow: 0 2px 10px rgba(102,126,234,0.4);
+            cursor: pointer; border: none; margin-top: -10px;
+        }
+        .bottom-nav .publish-btn:active { transform: scale(0.9); }
+
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: rgba(0,0,0,0.75); color: white; padding: 10px 20px;
+            border-radius: 8px; font-size: 14px; z-index: 9999;
+            display: none; pointer-events: none;
+        }
+        .toast.show { display: block; }
+
+        @media (max-width: 600px) {
+            .profile-card { padding: 16px; }
+            .profile-avatar { width: 56px; height: 56px; font-size: 24px; }
+            .profile-name { font-size: 16px; }
+            .menu-grid { gap: 8px; padding: 10px 10px 16px; }
+            .menu-card { padding: 14px 10px; }
+            .menu-card .menu-icon { width: 38px; height: 38px; font-size: 18px; border-radius: 10px; }
+            .post-card { padding: 12px 14px; border-radius: 10px; }
+            .bottom-nav { height: 50px; }
+            .bottom-nav .publish-btn { width: 40px; height: 40px; font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if current_tab %}
+        <a href="/my">←</a>
+        <h1>{% if current_tab == 'favorites' %}我的收藏{% else %}我的帖子{% endif %}</h1>
+        {% else %}
+        <a href="/">←</a>
+        <h1>我的</h1>
+        {% endif %}
+    </div>
+
+    <!-- ===== 个人信息（Tab 模式精简） ===== -->
+    {% if current_tab %}
+    <div class="profile-card" style="padding:12px 16px;">
+        <div class="profile-avatar" style="width:44px;height:44px;font-size:18px;" onclick="document.getElementById('avatar-input').click()">
+            {% if user and user.avatar_url %}
+                <img src="{{ user.avatar_url }}" alt="avatar">
+            {% else %}
+                {% if user and user.nickname %}{{ user.nickname[:1] }}{% else %}{{ email.split('@')[0][:1] }}{% endif %}
+            {% endif %}
+        </div>
+        <div class="profile-info">
+            <div class="profile-name" style="font-size:15px;">
+                {% if user and user.nickname %}{{ user.nickname }}{% else %}{{ email.split('@')[0] }}{% endif %}
+            </div>
+            <div class="profile-school" style="font-size:11px;">🏫 承德应用技术职业学院</div>
+        </div>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="tab-bar">
+        <a href="/my?tab=posts" class="{% if current_tab == 'posts' %}active{% endif %}">📝 我的帖子</a>
+        <a href="/my?tab=favorites" class="{% if current_tab == 'favorites' %}active{% endif %}">⭐ 我的收藏</a>
+    </div>
+
+    <!-- 帖子列表 -->
+    <div class="post-list">
+        {% if posts %}
+            {% for msg in posts %}
+            <div class="post-card" onclick="saveTabState();window.location.href='/post/{{ msg.id }}'">
+                <div class="post-header">
+                    <div class="post-avatar">{{ msg.username[:1] }}</div>
+                    <div class="post-user-info">
+                        <div class="post-username">{{ msg.username }}</div>
+                        <div class="post-meta">
+                            <span>{{ msg.created_at }}</span>
+                            <span class="post-category cat-{{ msg.category }}">
+                                {% if msg.category == 'message' %}留言板{% elif msg.category == 'daily' %}日常投稿{% elif msg.category == 'used' %}二手闲置{% else %}留言板{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="post-content">{{ msg.content[:100] }}{% if msg.content|length > 100 %}...{% endif %}</div>
+                <div class="post-actions" onclick="event.stopPropagation()">
+                    <button class="{% if msg.liked %}liked{% endif %}" onclick="toggleLike({{ msg.id }}, this)">
+                        <span>{% if msg.liked %}❤️{% else %}🤍{% endif %}</span> <span>{{ msg.likes_count or 0 }}</span>
+                    </button>
+                    <button class="{% if msg.favorited %}favorited{% endif %}" onclick="toggleFav({{ msg.id }}, this)">
+                        <span>{% if msg.favorited %}⭐{% else %}☆{% endif %}</span>
+                    </button>
+                    <a href="/post/{{ msg.id }}">💬 {{ msg.replies_count or 0 }}</a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <p>{% if current_tab == 'favorites' %}还没有收藏帖子{% else %}还没有发布帖子{% endif %}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ===== 网格模式（无 tab 时显示） ===== -->
+    {% else %}
+
+    <!-- 个人信息（完整） -->
+    <div class="profile-card">
+        <div class="profile-avatar" onclick="document.getElementById('avatar-input').click()">
+            {% if user and user.avatar_url %}
+                <img src="{{ user.avatar_url }}" alt="avatar">
+            {% else %}
+                {% if user and user.nickname %}{{ user.nickname[:1] }}{% else %}{{ email.split('@')[0][:1] }}{% endif %}
+            {% endif %}
+        </div>
+        <div class="profile-info">
+            <div class="profile-name">
+                {% if user and user.nickname %}{{ user.nickname }}{% else %}{{ email.split('@')[0] }}{% endif %}
+                <span class="edit-btn" onclick="openEdit()">✏️</span>
+            </div>
+            <div class="profile-school">🏫 承德应用技术职业学院 <span class="badge">在校生</span></div>
+            <div class="profile-email">{{ email }}</div>
+            <div class="profile-stats">
+                <span class="ps-item">📝 <span class="ps-num">{{ stats.post_count }}</span> 帖子</span>
+                <span class="ps-item">❤️ <span class="ps-num">{{ stats.likes_received }}</span> 获赞</span>
+                <span class="ps-item">⭐ <span class="ps-num">{{ stats.fav_count }}</span> 收藏</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能入口网格 -->
+    <div class="menu-grid">
+        <div class="menu-card" onclick="window.location.href='/my?tab=posts'">
+            <div class="menu-icon posts">📝</div>
+            <div class="menu-title">我的帖子</div>
+            <div class="menu-desc">共 {{ stats.post_count }} 条</div>
+        </div>
+        <div class="menu-card" onclick="window.location.href='/my?tab=favorites'">
+            <div class="menu-icon fav">⭐</div>
+            <div class="menu-title">我的收藏</div>
+            <div class="menu-desc">共 {{ stats.fav_count }} 条</div>
+        </div>
+        <div class="menu-card" onclick="window.location.href='/my/comments'">
+            <div class="menu-icon comments">💬</div>
+            <div class="menu-title">历史评论</div>
+            <div class="menu-desc">查看全部回复</div>
+        </div>
+        <div class="menu-card" onclick="window.location.href='/hot'">
+            <div class="menu-icon hot">🔥</div>
+            <div class="menu-title">今日热榜</div>
+            <div class="menu-desc">最热帖子排行</div>
+        </div>
+        <div class="menu-card disabled" onclick="showComing()">
+            <div class="coming-soon">即将开放</div>
+            <div class="menu-icon wait">📦</div>
+            <div class="menu-title">我的蹲贴</div>
+            <div class="menu-desc">关注帖子动态</div>
+        </div>
+        <div class="menu-card disabled" onclick="showComing()">
+            <div class="coming-soon">即将开放</div>
+            <div class="menu-icon earn">💰</div>
+            <div class="menu-title">跑腿收益</div>
+            <div class="menu-desc">查看收入明细</div>
+        </div>
+        <div class="menu-card disabled" onclick="showComing()">
+            <div class="coming-soon">即将开放</div>
+            <div class="menu-icon service">🛎️</div>
+            <div class="menu-title">官方客服</div>
+            <div class="menu-desc">联系平台客服</div>
+        </div>
+        <div class="menu-card disabled" onclick="showComing()">
+            <div class="coming-soon">即将开放</div>
+            <div class="menu-icon school">🏫</div>
+            <div class="menu-title">本校客服</div>
+            <div class="menu-desc">校园专属服务</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ===== 底部导航 ===== -->
+    <div class="bottom-nav">
+        <a href="/?category=latest">
+            <span class="nav-icon">🏠</span><span>首页</span>
+        </a>
+        <button class="publish-btn" onclick="goPublish()">＋</button>
+        <a href="/my" class="active">
+            <span class="nav-icon">👤</span><span>我的</span>
+        </a>
+    </div>
+
+    <!-- ===== 隐藏的文件上传 ===== -->
+    <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+
+    <!-- ===== 编辑资料弹窗 ===== -->
+    <div class="modal-overlay" id="edit-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:200;justify-content:center;align-items:flex-end;">
+        <div class="modal-content" style="background:white;border-radius:16px 16px 0 0;padding:20px 16px 30px;width:100%;max-width:600px;animation:slide-up .3s;">
+            <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;">
+                <h3 style="font-size:16px;color:#333;">✏️ 编辑资料</h3>
+                <button class="modal-close" onclick="closeEdit()" style="width:28px;height:28px;border-radius:50%;border:none;background:#f0f0f0;font-size:16px;cursor:pointer;">✕</button>
+            </div>
+            <div style="text-align:center;margin-bottom:14px;">
+                <div style="width:72px;height:72px;border-radius:50%;margin:0 auto 8px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:30px;font-weight:bold;cursor:pointer;overflow:hidden;" onclick="document.getElementById('avatar-input').click()">
+                    {% if user and user.avatar_url %}
+                        <img src="{{ user.avatar_url }}" style="width:100%;height:100%;object-fit:cover;">
+                    {% else %}
+                        {% if user and user.nickname %}{{ user.nickname[:1] }}{% else %}{{ email.split('@')[0][:1] }}{% endif %}
+                    {% endif %}
+                </div>
+                <div style="font-size:11px;color:#667eea;cursor:pointer;" onclick="document.getElementById('avatar-input').click()">点击更换头像</div>
+            </div>
+            <div class="edit-field" style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;color:#999;margin-bottom:4px;">昵称</label>
+                <input id="edit-nickname" value="{% if user and user.nickname %}{{ user.nickname }}{% endif %}" placeholder="输入昵称" style="width:100%;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;">
+            </div>
+            <div class="edit-field" style="margin-bottom:14px;">
+                <label style="display:block;font-size:12px;color:#999;margin-bottom:4px;">手机号</label>
+                <input id="edit-phone" value="{% if user and user.phone %}{{ user.phone }}{% endif %}" placeholder="输入手机号" style="width:100%;padding:10px 12px;border:1px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;">
+            </div>
+            <button class="btn-save" onclick="saveProfile()" style="width:100%;padding:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;">💾 保存</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+    function showToast(msg) {
+        var t = document.getElementById("toast");
+        t.textContent = msg; t.classList.add("show");
+        setTimeout(function(){ t.classList.remove("show"); }, 2000);
+    }
+    function showComing() { showToast("⏳ 功能尚未开发，敬请期待"); }
+    function openEdit() { document.getElementById("edit-modal").style.display = "flex"; }
+    function closeEdit() { document.getElementById("edit-modal").style.display = "none"; }
+
+    function uploadAvatar(input) {
+        var file = input.files[0];
+        if (!file) return;
+        var formData = new FormData();
+        formData.append("file", file);
+        showToast("⏳ 上传中...");
+        fetch("/api/upload", { method: "POST", body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.url) {
+                fetch("/api/profile/update", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({avatar_url: data.url})
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.ok) { showToast("✅ 头像已更新"); setTimeout(function(){ location.reload(); }, 800); }
+                });
+            } else {
+                showToast("❌ " + (data.error || "上传失败"));
+            }
+        })
+        .catch(function() { showToast("❌ 上传失败"); });
+    }
+
+    function saveProfile() {
+        var nickname = document.getElementById("edit-nickname").value.trim();
+        var phone = document.getElementById("edit-phone").value.trim();
+        fetch("/api/profile/update", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({nickname: nickname, phone: phone})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.ok) {
+                showToast("✅ 保存成功");
+                setTimeout(function() { location.reload(); }, 1000);
+            } else {
+                showToast("❌ " + (data.error || "保存失败"));
+            }
+        })
+        .catch(function() { showToast("❌ 网络错误"); });
+    }
+
+    function toggleLike(msgId, btn) {
+        fetch("/api/like/" + msgId, {method: "POST"})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) { showToast("❌ " + data.error); return; }
+            btn.className = data.liked ? "liked" : "";
+            btn.innerHTML = '<span>' + (data.liked ? '❤️' : '🤍') + '</span><span>' + data.count + '</span>';
+        })
+        .catch(function() { showToast("❌ 操作失败"); });
+    }
+
+    function toggleFav(msgId, btn) {
+        fetch("/api/favorite/" + msgId, {method: "POST"})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) { showToast("❌ " + data.error); return; }
+            btn.className = data.favorited ? "favorited" : "";
+            btn.innerHTML = '<span>' + (data.favorited ? '⭐' : '☆') + '</span>';
+            showToast(data.favorited ? "✅ 已收藏" : "已取消收藏");
+        })
+        .catch(function() { showToast("❌ 操作失败"); });
+    }
+
+    function goPublish() {
+        window.location.href = '/?category=latest';
+        setTimeout(function() {
+            var btn = document.querySelector('.publish-btn');
+            if (btn) btn.click();
+        }, 500);
+    }
+
+    // ===== 搜索状态保存（防历史栈污染 / 状态丢失） =====
+    function saveTabState() {
+        try {
+            sessionStorage.setItem("my_tab_scroll", window.scrollY || 0);
+            sessionStorage.setItem("my_tab_url", window.location.href);
+        } catch(e) {}
+    }
+
+    function restoreTabState() {
+        try {
+            var savedUrl = sessionStorage.getItem("my_tab_url");
+            var savedScroll = parseInt(sessionStorage.getItem("my_tab_scroll")) || 0;
+            if (savedUrl && savedUrl == window.location.href && savedScroll > 0) {
+                setTimeout(function() {
+                    window.scrollTo(0, savedScroll);
+                }, 100);
+                sessionStorage.removeItem("my_tab_scroll");
+                sessionStorage.removeItem("my_tab_url");
+                return true;
+            }
+        } catch(e) {}
+        return false;
+    }
+
+    // pageshow 恢复滚动位置（兼容 bfcache）
+    window.addEventListener('pageshow', function(e) {
+        restoreTabState();
+    });
+    </script>
+</body>
+</html>
