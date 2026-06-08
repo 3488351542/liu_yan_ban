@@ -10,6 +10,7 @@ from flask import (Flask, render_template, request, session,
 import os
 import psycopg2
 import psycopg2.extras
+import psycopg2.pool
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
@@ -86,20 +87,36 @@ def get_now():
     return datetime.utcnow() + timedelta(hours=8)
 
 
-def get_db():
-    """连接 PostgreSQL（支持本地和云端）"""
+# 数据库连接池（启动时初始化）
+db_pool = None
+
+class PooledConnection:
+    """包装连接对象，close() 改成放回池子"""
+    def __init__(self, conn, pool):
+        self._conn = conn
+        self._pool = pool
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+    def close(self):
+        self._pool.putconn(self._conn)
+
+def init_db_pool():
+    """初始化连接池（只执行一次）"""
+    global db_pool
     database_url = os.environ.get("DATABASE_URL")
     if database_url:
-        # 云端：Railway 会自动设置 DATABASE_URL
-        return psycopg2.connect(database_url)
-    # 本地：用你本机的配置
-    return psycopg2.connect(
-        host="localhost",
-        port=5432,
-        database="message_board",
-        user="postgres",
-        password="123456"
-    )
+        db_pool = psycopg2.pool.ThreadedConnectionPool(2, 10, database_url)
+    else:
+        db_pool = psycopg2.pool.ThreadedConnectionPool(2, 10,
+            host="localhost", port=5432, database="message_board",
+            user="postgres", password="123456"
+        )
+
+def get_db():
+    """从连接池拿连接（conn.close() 自动放回池子）"""
+    if db_pool is None:
+        init_db_pool()
+    return PooledConnection(db_pool.getconn(), db_pool)
 
 
 def init_db():
