@@ -147,15 +147,7 @@
         <a href="javascript:history.back()" id="back-btn">←</a>
         <h1>帖子详情</h1>
     </div>
-    <script>
-    // 如果是从搜索来的，保存 from=search 状态
-    var urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('from') === 'search') {
-        var backBtn = document.getElementById('back-btn');
-        var q = urlParams.get('q') || '';
-        backBtn.href = '/?category=latest&from=search&q=' + encodeURIComponent(q);
-    }
-    </script>
+    <!-- 用 history.back() 返回，搜索状态由 sessionStorage 自动恢复 -->
 
     <div class="container">
         <!-- 帖子内容 -->

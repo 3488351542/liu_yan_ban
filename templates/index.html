@@ -1009,6 +1009,8 @@
     function closeSearch() {
         document.getElementById("search-overlay").classList.remove("show");
         document.getElementById("search-input-real").value = "";
+        // 关闭搜索时清空状态，避免下次返回自动弹开
+        clearSearchState();
     }
 
     function loadSearchHot() {
@@ -1152,13 +1154,13 @@
         return d.innerHTML;
     }
 
-    // ===== 页面加载后检查 URL =====
-    window.addEventListener('load', function() {
-        // 从搜索/详情页返回，自动打开搜索并恢复状态
-        var params = new URLSearchParams(window.location.search);
-        if (params.get('from') === 'search') {
+    // ===== 页面加载/返回时恢复搜索状态 =====
+    // 用 pageshow 替换 load，兼容 bfcache（浏览器页面缓存）
+    window.addEventListener('pageshow', function(e) {
+        // 从详情页 history.back() 返回时，sessionStorage 有搜索状态就自动恢复
+        if (sessionStorage.getItem("search_html")) {
             setTimeout(function() {
-                openSearch();  // 内部会尝试 restoreSearchState()
+                openSearch();  // 内部会调用 restoreSearchState()
             }, 200);
         }
         // URL hash 滚动到帖子
