@@ -25,9 +25,11 @@ import json
 # Redis 连接（本地用 localhost，Railway 用 REDIS_URL）
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 try:
-    cache = redis_lib.from_url(REDIS_URL, decode_responses=True)
+    # Railway 的 Redis URL 可能带 SSL（rediss://）
+    ssl = REDIS_URL.startswith("rediss://")
+    cache = redis_lib.from_url(REDIS_URL, decode_responses=True, ssl=ssl)
     cache.ping()
-except:
+except Exception:
     cache = None
 
 
