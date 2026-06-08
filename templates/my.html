@@ -212,7 +212,7 @@
         <a href="/my">←</a>
         <h1>{% if current_tab == 'favorites' %}我的收藏{% else %}我的帖子{% endif %}</h1>
         {% else %}
-        <a href="/">←</a>
+        <a href="javascript:history.back()">←</a>
         <h1>我的</h1>
         {% endif %}
     </div>
@@ -351,6 +351,11 @@
             <div class="menu-title">本校客服</div>
             <div class="menu-desc">校园专属服务</div>
         </div>
+    </div>
+
+    <!-- 退出按钮 -->
+    <div style="text-align:center;padding:10px 16px 8px;">
+        <a href="/logout" style="display:inline-block;padding:8px 30px;border:1px solid #e0e0e0;border-radius:20px;color:#e74c3c;font-size:13px;text-decoration:none;">退出登录</a>
     </div>
     {% endif %}
 

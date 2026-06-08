@@ -218,6 +218,9 @@
             font-weight: bold;
             flex-shrink: 0;
         }
+        .post-avatar img {
+            width: 100%; height: 100%; border-radius: 50%; object-fit: cover; pointer-events: none;
+        }
         .post-user-info { flex: 1; min-width: 0; }
         .post-username {
             font-size: 14px;
@@ -729,12 +732,14 @@
     <!-- ===== 用户栏（登录状态显示） ===== -->
     <div class="user-bar">
         {% if email %}
-        <span>👤 {{ email }}</span>
-        <a href="/logout" class="logout-link">退出登录</a>
+        <span style="font-weight:600;color:#667eea;">👤 {{ email.split('@')[0] }}</span>
+        <a href="/my" style="font-size:11px;color:#667eea;margin-left:auto;">个人中心</a>
+        <span class="sep">|</span>
+        <a href="/logout" class="logout-link" style="color:#e74c3c;">退出</a>
         {% else %}
-        <a href="/login" class="login-link">登录</a>
-        <span class="sep">/</span>
-        <a href="/register" class="login-link">注册</a>
+        <span>💡 登录后可以发帖、点赞、评论</span>
+        <a href="/login" class="login-link" style="background:#667eea;color:white;padding:3px 14px;border-radius:12px;font-size:12px;">登录</a>
+        <a href="/register" class="login-link" style="color:#667eea;font-size:12px;">注册</a>
         {% endif %}
     </div>
 
@@ -753,7 +758,7 @@
             <div class="post-card" id="post-{{ msg.id }}" onclick="window.location.href='/post/{{ msg.id }}'">
                 <!-- 头部 -->
                 <div class="post-header">
-                    <div class="post-avatar">{{ msg.username[:1] }}</div>
+                    <div class="post-avatar">{% if msg.author_avatar %}<img src="{{ msg.author_avatar }}">{% else %}{{ msg.username[:1] }}{% endif %}</div>
                     <div class="post-user-info">
                         <div class="post-username">{{ msg.username }}</div>
                         <div class="post-meta">

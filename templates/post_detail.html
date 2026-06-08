@@ -40,6 +40,7 @@
             display: flex; align-items: center; justify-content: center;
             color: white; font-size: 16px; font-weight: bold; flex-shrink: 0;
         }
+        .post-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; pointer-events:none; }
         .post-username { font-size: 14px; font-weight: 600; color: #333; }
         .post-meta { font-size: 11px; color: #bbb; display: flex; gap: 6px; align-items: center; }
         .post-category {
@@ -81,6 +82,7 @@
             background: #e0e0e0; display: flex; align-items: center;
             justify-content: center; font-size: 12px; color: #999; flex-shrink: 0;
         }
+        .comment-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; pointer-events:none; }
         .comment-name { font-size: 13px; font-weight: 600; color: #667eea; }
         .comment-time { font-size: 10px; color: #ccc; margin-left: auto; }
         .comment-content { font-size: 14px; color: #333; line-height: 1.6; }
@@ -153,7 +155,7 @@
         <!-- 帖子内容 -->
         <div class="post-card">
             <div class="post-header">
-                <div class="post-avatar">{{ post.username[:1] }}</div>
+                <div class="post-avatar">{% if post.author_avatar %}<img src="{{ post.author_avatar }}">{% else %}{{ post.username[:1] }}{% endif %}</div>
                 <div>
                     <div class="post-username">{{ post.username }}</div>
                     <div class="post-meta">
@@ -194,7 +196,7 @@
                 {% for r in post.replies_list %}
                 <div class="comment-item" id="comment-{{ r.id }}">
                     <div class="comment-header">
-                        <div class="comment-avatar">{{ r.username[:1] }}</div>
+                        <div class="comment-avatar">{% if r.author_avatar %}<img src="{{ r.author_avatar }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">{% else %}{{ r.username[:1] }}{% endif %}</div>
                         <span class="comment-name">{{ r.username }}</span>
                         <span class="comment-time">{{ r.created_at }}</span>
                     </div>

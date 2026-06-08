@@ -13,6 +13,7 @@ import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
+from PIL import Image
 import requests
 import json
 import io
@@ -195,12 +196,12 @@ def get_messages(category=None, page=1, per_page=20, email=None):
     offset = (page - 1) * per_page
     if category and category != "latest":
         cursor.execute(
-            "select * from messages where reply_to is null and category = %s order by created_at desc limit %s offset %s",
+            "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to is null and m.category = %s order by m.created_at desc limit %s offset %s",
             [category, per_page, offset]
         )
     else:
         cursor.execute(
-            "select * from messages where reply_to is null order by created_at desc limit %s offset %s",
+            "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to is null order by m.created_at desc limit %s offset %s",
             [per_page, offset]
         )
     messages = cursor.fetchall()
@@ -264,12 +265,12 @@ def search_messages(query, page=1, per_page=20):
     offset = (page - 1) * per_page
     pattern = f"%{query}%"
     cursor.execute(
-        "select * from messages where reply_to is null and content ilike %s order by created_at desc limit %s offset %s",
+        "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to is null and m.content ilike %s order by m.created_at desc limit %s offset %s",
         [pattern, per_page, offset]
     )
     messages = cursor.fetchall()
     for msg in messages:
-        cursor.execute("select * from messages where reply_to = %s order by created_at asc", [msg["id"]])
+        cursor.execute("select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to = %s order by m.created_at asc", [msg["id"]])
         msg["replies_list"] = cursor.fetchall()
     conn.close()
     return messages
@@ -281,9 +282,10 @@ def get_hot_posts(email=None, limit=10):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     today = get_now().strftime("%Y-%m-%d")
     cursor.execute(
-        """select * from messages
-           where reply_to is null and created_at::date = %s
-           order by (likes_count + comments_count) desc, created_at desc limit %s""",
+        """select m.*, u.avatar_url as author_avatar from messages m
+           left join users u on m.user_email = u.email
+           where m.reply_to is null and m.created_at::date = %s
+           order by (m.likes_count + m.comments_count) desc, m.created_at desc limit %s""",
         [today, limit]
     )
     posts = cursor.fetchall()
@@ -306,13 +308,13 @@ def get_post_detail(post_id, email=None):
     """获取帖子详情 + 全部评论"""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute("select * from messages where id = %s", [post_id])
+    cursor.execute("select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.id = %s", [post_id])
     post = cursor.fetchone()
     if not post:
         conn.close()
         return None
     # 全部评论（正序）
-    cursor.execute("select * from messages where reply_to = %s order by created_at asc", [post_id])
+    cursor.execute("select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.reply_to = %s order by m.created_at asc", [post_id])
     post["replies_list"] = cursor.fetchall()
     post["replies_count"] = post.get("comments_count") or len(post["replies_list"])
     # 点赞+收藏状态
@@ -416,7 +418,7 @@ def get_user_posts(email, page=1, per_page=20):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     offset = (page - 1) * per_page
     cursor.execute(
-        "select * from messages where user_email = %s and reply_to is null order by created_at desc limit %s offset %s",
+        "select m.*, u.avatar_url as author_avatar from messages m left join users u on m.user_email = u.email where m.user_email = %s and m.reply_to is null order by m.created_at desc limit %s offset %s",
         [email, per_page, offset]
     )
     posts = cursor.fetchall()
@@ -1318,10 +1320,22 @@ def api_upload():
         # 生成唯一文件名
         ext = file.filename.rsplit(".", 1)[1].lower()
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.{ext}"
+        safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.jpg"
         filepath = os.path.join(UPLOAD_FOLDER, safe_name)
 
-        file.save(filepath)
+        # 压缩图片：最大 1200px，JPEG 质量 80%
+        img = Image.open(file)
+        # 转 RGB（处理 PNG 透明背景）
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        # 限制最大尺寸
+        max_size = 1200
+        if img.width > max_size or img.height > max_size:
+            ratio = max_size / max(img.width, img.height)
+            new_size = (int(img.width * ratio), int(img.height * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+        # 保存压缩
+        img.save(filepath, "JPEG", quality=80, optimize=True)
 
         # 返回可访问的 URL
         url = f"/static/uploads/{safe_name}"
@@ -1329,6 +1343,18 @@ def api_upload():
 
     except Exception as e:
         return jsonify({"error": f"上传失败：{str(e)}"}), 500
+
+
+# =============================================
+# 静态文件缓存头
+# =============================================
+
+@app.after_request
+def add_cache_headers(response):
+    """给图片加缓存头，避免每次都重新下载"""
+    if response.content_type and response.content_type.startswith("image/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"  # 缓存24小时
+    return response
 
 
 # =============================================
