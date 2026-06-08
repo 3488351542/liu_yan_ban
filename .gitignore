@@ -226,9 +226,3 @@ chromedriver/
 chromedriver.zip
 chromedriver_win64.zip
 cleanup_test.py
-
-# ===== 上传的测试图片 =====
-static/uploads/*.jpg
-static/uploads/*.jpeg
-static/uploads/*.png
-static/uploads/*.gif
