@@ -191,6 +191,21 @@ def init_db():
     # api_key = API 密钥
     # image_api_key = 图片生成 API 密钥
 
+    # ===== 索引（加速查询） =====
+    # messages 表
+    cursor.execute("create index if not exists idx_messages_category on messages(category)")
+    cursor.execute("create index if not exists idx_messages_created on messages(created_at desc)")
+    cursor.execute("create index if not exists idx_messages_user on messages(user_email)")
+    cursor.execute("create index if not exists idx_messages_reply_to on messages(reply_to)")
+    # likes 表
+    cursor.execute("create index if not exists idx_likes_user on likes(user_email)")
+    cursor.execute("create index if not exists idx_likes_message on likes(message_id)")
+    # favorites 表
+    cursor.execute("create index if not exists idx_favorites_user on favorites(user_email)")
+    cursor.execute("create index if not exists idx_favorites_message on favorites(message_id)")
+    # chat_messages 表
+    cursor.execute("create index if not exists idx_chat_user on chat_messages(user_email)")
+
     # 兼容旧数据库（缺少的列，PostgreSQL 版）
     compat_checks = {
         "user_config": ["image_api_key"],
@@ -225,8 +240,9 @@ def init_db():
     conn.close()
 
 
-def get_messages(category=None, page=1, per_page=20, email=None):
-    """读取留言，支持分类过滤和分页（只返回顶级帖子，不含回复）"""
+@cached(60)
+def _get_messages_raw(category, page, per_page):
+    """帖子列表原始数据（缓存60秒，不含用户点赞状态）"""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     offset = (page - 1) * per_page
@@ -240,39 +256,40 @@ def get_messages(category=None, page=1, per_page=20, email=None):
             "select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.reply_to is null order by m.created_at desc limit %s offset %s",
             [per_page, offset]
         )
-    messages = cursor.fetchall()
-    for msg in messages:
-        # 用昵称覆盖用户名
-        if msg.get("nickname"):
-            msg["username"] = msg["nickname"]
-        # 首页不加载回复列表（点击计数跳转到详情页查看）
-        msg["replies_list"] = []
-        msg["replies_count"] = msg.get("comments_count") or 0
-        # 是否已点赞
-        if email:
-            cursor.execute(
-                "select id from likes where user_email = %s and message_id = %s",
-                [email, msg["id"]]
-            )
-            msg["liked"] = cursor.fetchone() is not None
-            cursor.execute(
-                "select id from favorites where user_email = %s and message_id = %s",
-                [email, msg["id"]]
-            )
-            msg["favorited"] = cursor.fetchone() is not None
-        else:
-            msg["liked"] = False
-            msg["favorited"] = False
-
-        # 兼容旧数据没有分类
-        if not msg.get("category"):
-            msg["category"] = "message"
-        if not msg.get("likes_count"):
-            msg["likes_count"] = 0
-        if not msg.get("comments_count"):
-            msg["comments_count"] = 0
-
+    posts = cursor.fetchall()
+    for p in posts:
+        if p.get("nickname"):
+            p["username"] = p["nickname"]
+        p["replies_list"] = []
+        p["replies_count"] = p.get("comments_count") or 0
+        if not p.get("category"):
+            p["category"] = "message"
+        if not p.get("likes_count"):
+            p["likes_count"] = 0
+        if not p.get("comments_count"):
+            p["comments_count"] = 0
     conn.close()
+    return posts
+
+
+def get_messages(category=None, page=1, per_page=20, email=None):
+    """读取留言（缓存 + 补用户状态）"""
+    raw = _get_messages_raw(category, page, per_page)
+    messages = []
+    for msg in raw:
+        m = dict(msg)
+        if email:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("select id from likes where user_email=%s and message_id=%s", [email, m["id"]])
+            m["liked"] = cur.fetchone() is not None
+            cur.execute("select id from favorites where user_email=%s and message_id=%s", [email, m["id"]])
+            m["favorited"] = cur.fetchone() is not None
+            conn.close()
+        else:
+            m["liked"] = False
+            m["favorited"] = False
+        messages.append(m)
     return messages
 
 
@@ -363,8 +380,9 @@ def get_hot_posts(email=None, limit=10):
     return posts
 
 
-def get_post_detail(post_id, email=None):
-    """获取帖子详情 + 全部评论"""
+@cached(120)
+def _get_post_raw(post_id):
+    """帖子详情原始数据（缓存120秒，不含点赞收藏状态）"""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute("select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.id = %s", [post_id])
@@ -372,26 +390,35 @@ def get_post_detail(post_id, email=None):
     if not post:
         conn.close()
         return None
-    # 用昵称覆盖用户名
     if post.get("nickname"):
         post["username"] = post["nickname"]
-    # 全部评论（正序）
     cursor.execute("select m.*, u.avatar_url as author_avatar, u.nickname from messages m left join users u on m.user_email = u.email where m.reply_to = %s order by m.created_at asc", [post_id])
     post["replies_list"] = cursor.fetchall()
     for r in post["replies_list"]:
         if r.get("nickname"):
             r["username"] = r["nickname"]
     post["replies_count"] = post.get("comments_count") or len(post["replies_list"])
-    # 点赞+收藏状态
+    conn.close()
+    return post
+
+
+def get_post_detail(post_id, email=None):
+    """获取帖子详情（缓存 + 补状态）"""
+    post = _get_post_raw(post_id)
+    if not post:
+        return None
+    # 点赞+收藏（每个用户不同，不缓存）
     if email:
+        conn = get_db()
+        cursor = conn.cursor()
         cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, post_id])
         post["liked"] = cursor.fetchone() is not None
         cursor.execute("select id from favorites where user_email = %s and message_id = %s", [email, post_id])
         post["favorited"] = cursor.fetchone() is not None
+        conn.close()
     else:
         post["liked"] = False
         post["favorited"] = False
-    conn.close()
     return post
 
 
@@ -536,20 +563,18 @@ def get_user_favorites(email, page=1, per_page=20):
     return posts
 
 
+@cached(300)
 def get_user_stats(email):
-    """获取用户统计信息"""
+    """获取用户统计信息（缓存5分钟）"""
     conn = get_db()
     cursor = conn.cursor()
-    # 帖子数
     cursor.execute("select count(*) from messages where user_email = %s and reply_to is null", [email])
     post_count = cursor.fetchone()[0]
-    # 收到的点赞数
     cursor.execute(
         "select count(*) from likes l join messages m on l.message_id = m.id where m.user_email = %s",
         [email]
     )
     likes_received = cursor.fetchone()[0]
-    # 收藏数（收藏了多少帖子）
     cursor.execute("select count(*) from favorites where user_email = %s", [email])
     fav_count = cursor.fetchone()[0]
     conn.close()

@@ -9,8 +9,9 @@
 | 缓存内容 | 缓存时间 | 状态 |
 |---------|---------|------|
 | 今日热榜 TOP10 | 30秒 | ✅ 已上线 |
-| 分类帖子列表 | 60秒 | ⏳ 待实现 |
-| 帖子总数/统计 | 5分钟 | ⏳ 待实现 |
+| 帖子列表（分类/最新） | 60秒 | ✅ 已上线 |
+| 帖子详情 + 评论 | 120秒 | ✅ 已上线 |
+| 用户统计（帖子数/获赞/收藏） | 5分钟 | ✅ 已上线 |
 
 ---
 
@@ -58,40 +59,38 @@ def cached(timeout=30):
     return decorator
 ```
 
-### 2.3 具体使用
+### 2.3 已缓存的函数
+
+| 函数 | 缓存时间 | 说明 |
+|------|---------|------|
+| `_get_hot_posts_raw(limit)` | 30秒 | 今日热榜 TOP10 |
+| `_get_messages_raw(category, page, per_page)` | 60秒 | 分类帖子列表 |
+| `_get_post_raw(post_id)` | 120秒 | 帖子详情 + 全部评论 |
+| `get_user_stats(email)` | 300秒 | 用户统计（帖子数/获赞/收藏） |
+
+### 2.4 缓存模式
+
+每个缓存函数都遵循同一模式：
 
 ```python
-@cached(30)
-def _get_hot_posts_raw(limit=10):
-    """热榜原始数据（缓存30秒，不包含用户点赞状态）"""
-    # ... 查询数据库 ...
-    return posts
-
-def get_hot_posts(email=None, limit=10):
-    """对外接口：缓存数据 + 补用户状态"""
-    posts = _get_hot_posts_raw(limit)
-    if email:
-        for p in posts:
-            # 单独查询当前用户的点赞状态
-            cursor.execute("select id from likes where user_email=%s and message_id=%s", [email, p["id"]])
-            p["liked"] = cursor.fetchone() is not None
-    return posts
-```
-
----
-
-## 3. 添加更多缓存
-
-按同样模式添加：
-
-```python
+# 第一步：原始数据函数（加 @cached）
 @cached(60)
-def _get_messages_raw(category, page, per_page):
-    """分类帖子列表（缓存60秒）"""
-    # ... 查询数据库 ...
+def _get_xxx_raw(param1, param2):
+    """只查数据库，不处理用户状态"""
+    data = query_database(...)
+    return data
 
-def get_messages(category, page, per_page, email):
-    """对外接口"""
+# 第二步：对外接口（不加缓存）
+def get_xxx(param1, param2, email=None):
+    """从缓存拿数据 + 补用户状态"""
+    data = _get_xxx_raw(param1, param2)
+    if email:
+        # 单独查当前用户的点赞/收藏状态
+        for item in data:
+            # 查询 likes/favorites 表
+            ...
+    return data
+```
     posts = _get_messages_raw(category, page, per_page)
     # 补用户状态
     return posts
