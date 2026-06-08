@@ -12,11 +12,17 @@ import psycopg2
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename
 import requests
 import json
 import io
 import base64
 import qrcode
+
+# 上传配置
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "bmp"}
+MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
 
 app = Flask(__name__)
 app.secret_key = "liu-yan-ban-2024-xue-xi-xiang-mu-666"
@@ -65,7 +71,7 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # 留言表（带 reply_to 字段）
+    # 留言表（带 image_url 字段）
     cursor.execute("""
         create table if not exists messages (
             id serial primary key,
@@ -73,6 +79,7 @@ def init_db():
             content text not null,
             reply_to integer default null,
             user_email text default null,
+            image_url text default null,
             created_at timestamp default current_timestamp
         )
     """)
@@ -120,13 +127,15 @@ def init_db():
     # api_key = API 密钥
     # image_api_key = 图片生成 API 密钥
 
-    # 兼容旧数据库（加 image_api_key 列，PostgreSQL 版）
-    cursor.execute("""
-        select column_name from information_schema.columns
-        where table_name='user_config' and column_name='image_api_key'
-    """)
-    if not cursor.fetchone():
-        cursor.execute("alter table user_config add column image_api_key text default null")
+    # 兼容旧数据库（缺少的列，PostgreSQL 版）
+    for col in ["image_api_key", "image_url"]:
+        table = "user_config" if col == "image_api_key" else "messages"
+        cursor.execute("""
+            select column_name from information_schema.columns
+            where table_name=%s and column_name=%s
+        """, [table, col])
+        if not cursor.fetchone():
+            cursor.execute(f"alter table {table} add column {col} text default null")
 
     conn.commit()
 
@@ -156,13 +165,13 @@ def get_messages():
     return messages
 
 
-def save_message(username, content, reply_to=None, user_email=None):
+def save_message(username, content, reply_to=None, user_email=None, image_url=None):
     """保存留言"""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "insert into messages (username, content, reply_to, user_email) values (%s, %s, %s, %s)",
-        (username, content, reply_to, user_email)
+        "insert into messages (username, content, reply_to, user_email, image_url) values (%s, %s, %s, %s, %s)",
+        (username, content, reply_to, user_email, image_url)
     )
     conn.commit()
     conn.close()
@@ -352,8 +361,10 @@ def submit():
         return redirect("/login")
 
     content = request.form.get("content")
+    image_url = request.form.get("image_url")
     reply_to = request.form.get("reply_to")
     # reply_to 可能是空字符串，转成 None
+
 
     if content:
         display_name = email.split("@")[0]
@@ -361,7 +372,8 @@ def submit():
             username=display_name,
             content=content,
             reply_to=int(reply_to) if reply_to and reply_to.isdigit() else None,
-            user_email=email
+            user_email=email,
+            image_url=image_url or None
         )
 
     return redirect("/")
@@ -795,10 +807,60 @@ def api_image_generate():
 
 
 # =============================================
+# 图片上传
+# =============================================
+
+def allowed_file(filename):
+    """检查文件扩展名是否允许"""
+    return "." in filename and \
+        filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route("/api/upload", methods=["POST"])
+def api_upload():
+    """上传图片，返回访问 URL"""
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "未登录"}), 401
+
+    if "file" not in request.files:
+        return jsonify({"error": "没有上传文件"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "没有选择文件"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({"error": "不支持的图片格式，请上传 PNG/JPG/GIF/WebP"}), 400
+
+    try:
+        # 确保上传目录存在
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+        # 生成唯一文件名
+        ext = file.filename.rsplit(".", 1)[1].lower()
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, safe_name)
+
+        file.save(filepath)
+
+        # 返回可访问的 URL
+        url = f"/static/uploads/{safe_name}"
+        return jsonify({"url": url, "filename": safe_name})
+
+    except Exception as e:
+        return jsonify({"error": f"上传失败：{str(e)}"}), 500
+
+
+# =============================================
 # 启动
 # =============================================
 
 init_db()
+
+# 确保上传目录存在
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 if __name__ == "__main__":
     app.run(debug=True)

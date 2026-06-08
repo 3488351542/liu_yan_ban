@@ -69,6 +69,113 @@
             height: 80px; transition: border-color 0.3s;
         }
         .form-group textarea:focus { border-color: #667eea; }
+
+        /* ===== 工具栏（表情 + 图片上传） ===== */
+        .toolbar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar-btn {
+            padding: 6px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .toolbar-btn:hover {
+            background: #f0f2ff;
+            border-color: #667eea;
+        }
+        .toolbar-btn.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        /* ===== 表情面板 ===== */
+        .emoji-panel {
+            display: none;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #fafafa;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .emoji-panel.show { display: block; }
+        .emoji-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+        }
+        .emoji-grid button {
+            width: 36px; height: 36px;
+            border: none; border-radius: 4px;
+            background: transparent;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .emoji-grid button:hover {
+            background: #e0e0e0;
+            transform: scale(1.15);
+        }
+        .emoji-category {
+            font-size: 12px; color: #999;
+            padding: 4px 0 2px;
+            font-weight: bold;
+        }
+
+        /* ===== 图片上传 ===== */
+        .upload-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .upload-preview {
+            display: none;
+            position: relative;
+            margin-bottom: 8px;
+        }
+        .upload-preview.show { display: inline-block; }
+        .upload-preview img {
+            max-width: 100%;
+            max-height: 180px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .upload-preview .remove-btn {
+            position: absolute;
+            top: 4px; right: 4px;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-preview .remove-btn:hover { background: rgba(231,76,60,0.9); }
+        .upload-status {
+            font-size: 13px; color: #999;
+            display: none;
+        }
+        .upload-status.show { display: inline; }
+        .upload-error {
+            font-size: 13px; color: #e74c3c;
+            display: none;
+        }
+        .upload-error.show { display: inline; }
+
         .btn-submit {
             width: 100%; padding: 12px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -109,6 +216,22 @@
             color: #444; line-height: 1.6; white-space: pre-wrap;
             font-size: 15px;
         }
+        /* ===== 留言中的图片 ===== */
+        .msg-image {
+            margin-top: 8px;
+        }
+        .msg-image img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .msg-image img:hover {
+            transform: scale(1.02);
+        }
+
         .msg-actions {
             margin-top: 8px; display: flex; gap: 10px;
         }
@@ -137,6 +260,11 @@
             white-space: pre-wrap;
         }
         .reply-card .time { color: #ccc; font-size: 11px; }
+        .reply-card .reply-image img {
+            max-width: 100%; max-height: 200px;
+            border-radius: 6px; margin-top: 6px;
+            border: 1px solid #e8e8e8; cursor: pointer;
+        }
 
         /* ===== 回复表单 ===== */
         .reply-form {
@@ -150,6 +278,40 @@
             height: 60px;
         }
         .reply-form textarea:focus { border-color: #667eea; }
+        .reply-form .reply-toolbar {
+            display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap;
+        }
+        .reply-form .reply-toolbar button {
+            padding: 4px 10px; border: 1px solid #d0d5ff;
+            border-radius: 4px; background: white; cursor: pointer;
+            font-size: 14px; transition: all 0.2s;
+        }
+        .reply-form .reply-toolbar button:hover { background: #e8ebff; }
+        .reply-form .reply-emoji-panel {
+            display: none; border: 1px solid #d0d5ff;
+            border-radius: 6px; padding: 8px; background: white;
+            margin-bottom: 6px; max-height: 120px; overflow-y: auto;
+        }
+        .reply-form .reply-emoji-panel.show { display: block; }
+        .reply-form .reply-emoji-panel button {
+            width: 32px; height: 32px; font-size: 18px;
+            border: none; background: transparent; cursor: pointer; border-radius: 3px;
+        }
+        .reply-form .reply-emoji-panel button:hover { background: #f0f0f0; }
+        .reply-form .reply-upload-preview {
+            display: none; margin-bottom: 6px; position: relative;
+        }
+        .reply-form .reply-upload-preview.show { display: inline-block; }
+        .reply-form .reply-upload-preview img {
+            max-width: 100%; max-height: 120px; border-radius: 6px;
+            border: 1px solid #d0d5ff;
+        }
+        .reply-form .reply-upload-preview .remove-btn {
+            position: absolute; top: 2px; right: 2px;
+            width: 22px; height: 22px; border-radius: 50%; border: none;
+            background: rgba(0,0,0,0.6); color: white; font-size: 12px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
         .reply-form .btn-reply {
             margin-top: 6px; padding: 6px 16px;
             background: #667eea; color: white; border: none;
@@ -161,6 +323,37 @@
             border-radius: 6px; cursor: pointer; font-size: 13px;
         }
         .empty { text-align: center; color: #ccc; padding: 40px 0; }
+
+        /* ===== 图片查看器弹窗 ===== */
+        .image-viewer {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .image-viewer.show { display: flex; }
+        .image-viewer img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        /* ===== 移动端适配 ===== */
+        @media (max-width: 600px) {
+            body { padding: 20px 10px; }
+            .container { padding: 16px; border-radius: 12px; }
+            .top-bar h1 { font-size: 18px; }
+            .top-btn { font-size: 12px; padding: 6px 10px; }
+            .message-card .content { font-size: 14px; }
+            .replies { margin-left: 10px; padding-left: 8px; }
+            .emoji-grid button { width: 32px; height: 32px; font-size: 18px; }
+            .toolbar-btn { font-size: 14px; padding: 5px 10px; }
+        }
     </style>
 </head>
 <body>
@@ -188,9 +381,177 @@
 
         <!-- 留言表单 -->
         {% if email %}
-        <form action="/submit" method="POST">
+        <form action="/submit" method="POST" id="msg-form">
             <div class="form-group">
-                <textarea name="content" placeholder="写点什么..." required></textarea>
+                <!-- 工具栏：表情 + 图片上传 -->
+                <div class="toolbar">
+                    <button type="button" class="toolbar-btn" id="emoji-toggle" onclick="toggleEmoji('main')">😊</button>
+                    <button type="button" class="toolbar-btn" onclick="document.getElementById('img-input').click()">🖼️</button>
+                </div>
+
+                <!-- 表情面板 -->
+                <div class="emoji-panel" id="emoji-panel-main">
+                    <div class="emoji-category">😊 笑脸</div>
+                    <div class="emoji-grid">
+                        <button onclick="insertEmoji('main','😀')">😀</button>
+                        <button onclick="insertEmoji('main','😁')">😁</button>
+                        <button onclick="insertEmoji('main','😂')">😂</button>
+                        <button onclick="insertEmoji('main','🤣')">🤣</button>
+                        <button onclick="insertEmoji('main','😃')">😃</button>
+                        <button onclick="insertEmoji('main','😄')">😄</button>
+                        <button onclick="insertEmoji('main','😅')">😅</button>
+                        <button onclick="insertEmoji('main','😆')">😆</button>
+                        <button onclick="insertEmoji('main','😉')">😉</button>
+                        <button onclick="insertEmoji('main','😊')">😊</button>
+                        <button onclick="insertEmoji('main','😋')">😋</button>
+                        <button onclick="insertEmoji('main','😎')">😎</button>
+                        <button onclick="insertEmoji('main','😍')">😍</button>
+                        <button onclick="insertEmoji('main','🥰')">🥰</button>
+                        <button onclick="insertEmoji('main','😘')">😘</button>
+                        <button onclick="insertEmoji('main','🤗')">🤗</button>
+                        <button onclick="insertEmoji('main','🤩')">🤩</button>
+                        <button onclick="insertEmoji('main','🤔')">🤔</button>
+                        <button onclick="insertEmoji('main','🤨')">🤨</button>
+                        <button onclick="insertEmoji('main','😐')">😐</button>
+                        <button onclick="insertEmoji('main','😏')">😏</button>
+                        <button onclick="insertEmoji('main','😒')">😒</button>
+                        <button onclick="insertEmoji('main','😬')">😬</button>
+                        <button onclick="insertEmoji('main','😮')">😮</button>
+                        <button onclick="insertEmoji('main','😯')">😯</button>
+                        <button onclick="insertEmoji('main','😲')">😲</button>
+                        <button onclick="insertEmoji('main','😳')">😳</button>
+                        <button onclick="insertEmoji('main','🥺')">🥺</button>
+                        <button onclick="insertEmoji('main','😢')">😢</button>
+                        <button onclick="insertEmoji('main','😭')">😭</button>
+                        <button onclick="insertEmoji('main','😤')">😤</button>
+                        <button onclick="insertEmoji('main','😡')">😡</button>
+                        <button onclick="insertEmoji('main','😈')">😈</button>
+                        <button onclick="insertEmoji('main','👿')">👿</button>
+                        <button onclick="insertEmoji('main','💀')">💀</button>
+                    </div>
+                    <div class="emoji-category">👍 手势</div>
+                    <div class="emoji-grid">
+                        <button onclick="insertEmoji('main','👍')">👍</button>
+                        <button onclick="insertEmoji('main','👎')">👎</button>
+                        <button onclick="insertEmoji('main','👊')">👊</button>
+                        <button onclick="insertEmoji('main','✊')">✊</button>
+                        <button onclick="insertEmoji('main','🤛')">🤛</button>
+                        <button onclick="insertEmoji('main','🤜')">🤜</button>
+                        <button onclick="insertEmoji('main','👏')">👏</button>
+                        <button onclick="insertEmoji('main','🙌')">🙌</button>
+                        <button onclick="insertEmoji('main','🤝')">🤝</button>
+                        <button onclick="insertEmoji('main','🙏')">🙏</button>
+                        <button onclick="insertEmoji('main','💪')">💪</button>
+                        <button onclick="insertEmoji('main','✌️')">✌️</button>
+                        <button onclick="insertEmoji('main','🤞')">🤞</button>
+                        <button onclick="insertEmoji('main','🖕')">🖕</button>
+                        <button onclick="insertEmoji('main','❤️')">❤️</button>
+                        <button onclick="insertEmoji('main','🧡')">🧡</button>
+                        <button onclick="insertEmoji('main','💛')">💛</button>
+                        <button onclick="insertEmoji('main','💚')">💚</button>
+                        <button onclick="insertEmoji('main','💙')">💙</button>
+                        <button onclick="insertEmoji('main','💜')">💜</button>
+                        <button onclick="insertEmoji('main','🖤')">🖤</button>
+                        <button onclick="insertEmoji('main','💕')">💕</button>
+                        <button onclick="insertEmoji('main','💯')">💯</button>
+                        <button onclick="insertEmoji('main','🔥')">🔥</button>
+                        <button onclick="insertEmoji('main','⭐')">⭐</button>
+                        <button onclick="insertEmoji('main','🎉')">🎉</button>
+                        <button onclick="insertEmoji('main','🎊')">🎊</button>
+                    </div>
+                    <div class="emoji-category">🐱 动物</div>
+                    <div class="emoji-grid">
+                        <button onclick="insertEmoji('main','🐶')">🐶</button>
+                        <button onclick="insertEmoji('main','🐱')">🐱</button>
+                        <button onclick="insertEmoji('main','🐭')">🐭</button>
+                        <button onclick="insertEmoji('main','🐹')">🐹</button>
+                        <button onclick="insertEmoji('main','🐰')">🐰</button>
+                        <button onclick="insertEmoji('main','🦊')">🦊</button>
+                        <button onclick="insertEmoji('main','🐻')">🐻</button>
+                        <button onclick="insertEmoji('main','🐼')">🐼</button>
+                        <button onclick="insertEmoji('main','🐨')">🐨</button>
+                        <button onclick="insertEmoji('main','🦁')">🦁</button>
+                        <button onclick="insertEmoji('main','🐮')">🐮</button>
+                        <button onclick="insertEmoji('main','🐷')">🐷</button>
+                        <button onclick="insertEmoji('main','🐸')">🐸</button>
+                        <button onclick="insertEmoji('main','🐵')">🐵</button>
+                        <button onclick="insertEmoji('main','🐔')">🐔</button>
+                        <button onclick="insertEmoji('main','🐧')">🐧</button>
+                        <button onclick="insertEmoji('main','🐦')">🐦</button>
+                        <button onclick="insertEmoji('main','🦄')">🦄</button>
+                        <button onclick="insertEmoji('main','🐴')">🐴</button>
+                        <button onclick="insertEmoji('main','🐍')">🐍</button>
+                        <button onclick="insertEmoji('main','🐢')">🐢</button>
+                        <button onclick="insertEmoji('main','🐙')">🐙</button>
+                        <button onclick="insertEmoji('main','🦋')">🦋</button>
+                        <button onclick="insertEmoji('main','🌸')">🌸</button>
+                        <button onclick="insertEmoji('main','🌺')">🌺</button>
+                    </div>
+                    <div class="emoji-category">🍔 食物</div>
+                    <div class="emoji-grid">
+                        <button onclick="insertEmoji('main','🍎')">🍎</button>
+                        <button onclick="insertEmoji('main','🍊')">🍊</button>
+                        <button onclick="insertEmoji('main','🍋')">🍋</button>
+                        <button onclick="insertEmoji('main','🍌')">🍌</button>
+                        <button onclick="insertEmoji('main','🍉')">🍉</button>
+                        <button onclick="insertEmoji('main','🍇')">🍇</button>
+                        <button onclick="insertEmoji('main','🍓')">🍓</button>
+                        <button onclick="insertEmoji('main','🍑')">🍑</button>
+                        <button onclick="insertEmoji('main','🍒')">🍒</button>
+                        <button onclick="insertEmoji('main','🥝')">🥝</button>
+                        <button onclick="insertEmoji('main','🍅')">🍅</button>
+                        <button onclick="insertEmoji('main','🥑')">🥑</button>
+                        <button onclick="insertEmoji('main','🍔')">🍔</button>
+                        <button onclick="insertEmoji('main','🍟')">🍟</button>
+                        <button onclick="insertEmoji('main','🍕')">🍕</button>
+                        <button onclick="insertEmoji('main','🌭')">🌭</button>
+                        <button onclick="insertEmoji('main','🥪')">🥪</button>
+                        <button onclick="insertEmoji('main','🌮')">🌮</button>
+                        <button onclick="insertEmoji('main','🍦')">🍦</button>
+                        <button onclick="insertEmoji('main','🍰')">🍰</button>
+                        <button onclick="insertEmoji('main','☕')">☕</button>
+                        <button onclick="insertEmoji('main','🍺')">🍺</button>
+                        <button onclick="insertEmoji('main','🥂')">🥂</button>
+                    </div>
+                    <div class="emoji-category">🎯 其他</div>
+                    <div class="emoji-grid">
+                        <button onclick="insertEmoji('main','🎵')">🎵</button>
+                        <button onclick="insertEmoji('main','🎶')">🎶</button>
+                        <button onclick="insertEmoji('main','🎮')">🎮</button>
+                        <button onclick="insertEmoji('main','🎯')">🎯</button>
+                        <button onclick="insertEmoji('main','🎲')">🎲</button>
+                        <button onclick="insertEmoji('main','🏆')">🏆</button>
+                        <button onclick="insertEmoji('main','🥇')">🥇</button>
+                        <button onclick="insertEmoji('main','🚀')">🚀</button>
+                        <button onclick="insertEmoji('main','✈️')">✈️</button>
+                        <button onclick="insertEmoji('main','🌍')">🌍</button>
+                        <button onclick="insertEmoji('main','🌈')">🌈</button>
+                        <button onclick="insertEmoji('main','⚡')">⚡</button>
+                        <button onclick="insertEmoji('main','💡')">💡</button>
+                        <button onclick="insertEmoji('main','📚')">📚</button>
+                        <button onclick="insertEmoji('main','💰')">💰</button>
+                        <button onclick="insertEmoji('main','🔒')">🔒</button>
+                        <button onclick="insertEmoji('main','🔑')">🔑</button>
+                        <button onclick="insertEmoji('main','🗿')">🗿</button>
+                        <button onclick="insertEmoji('main','🎃')">🎃</button>
+                        <button onclick="insertEmoji('main','🎄')">🎄</button>
+                        <button onclick="insertEmoji('main','🎁')">🎁</button>
+                        <button onclick="insertEmoji('main','🎂')">🎂</button>
+                        <button onclick="insertEmoji('main','🎈')">🎈</button>
+                        <button onclick="insertEmoji('main','🎀')">🎀</button>
+                    </div>
+                </div>
+
+                <!-- 图片上传预览 -->
+                <div class="upload-preview" id="upload-preview-main">
+                    <img id="preview-img-main" src="" alt="预览">
+                    <button type="button" class="remove-btn" onclick="removeImage('main')">✕</button>
+                </div>
+                <div class="upload-status" id="upload-status-main">⏳ 上传中...</div>
+                <div class="upload-error" id="upload-error-main"></div>
+                <input type="hidden" name="image_url" id="image-url-main" value="">
+
+                <textarea name="content" id="msg-content" placeholder="写点什么..." required></textarea>
             </div>
             <input type="hidden" name="reply_to" id="reply_to" value="">
             <button type="submit" class="btn-submit">发布留言</button>
@@ -216,6 +577,11 @@
                             <span class="time">{{ msg.created_at }}</span>
                         </div>
                         <div class="content">{{ msg.content }}</div>
+                        {% if msg.image_url %}
+                        <div class="msg-image">
+                            <img src="{{ msg.image_url }}" alt="留言图片" onclick="viewImage(this.src)">
+                        </div>
+                        {% endif %}
                         <div class="msg-actions">
                             <a href="#" onclick="showReply({{ msg.id }}); return false;">💬 回复</a>
                             {% if admin or (email and email == msg.user_email) %}
@@ -228,6 +594,42 @@
                         <!-- 回复表单 -->
                         <div class="reply-form" id="reply-form-{{ msg.id }}">
                             <form action="/submit" method="POST">
+                                <div class="reply-toolbar">
+                                    <button type="button" onclick="toggleReplyEmoji({{ msg.id }})">😊</button>
+                                    <button type="button" onclick="document.getElementById('reply-img-input-{{ msg.id }}').click()">🖼️</button>
+                                </div>
+                                <div class="reply-emoji-panel" id="reply-emoji-{{ msg.id }}">
+                                    <div style="display:flex;flex-wrap:wrap;gap:2px;">
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😀')">😀</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😂')">😂</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😊')">😊</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😍')">😍</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😎')">😎</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🤔')">🤔</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'👍')">👍</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'❤️')">❤️</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🔥')">🔥</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🎉')">🎉</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'💪')">💪</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🙏')">🙏</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🐱')">🐱</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🌸')">🌸</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🍔')">🍔</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🚀')">🚀</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'💯')">💯</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🎯')">🎯</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'⭐')">⭐</button>
+                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'💀')">💀</button>
+                                    </div>
+                                </div>
+                                <div class="reply-upload-preview" id="reply-upload-preview-{{ msg.id }}">
+                                    <img id="reply-preview-img-{{ msg.id }}" src="" alt="预览">
+                                    <button type="button" class="remove-btn" onclick="removeReplyImage({{ msg.id }})">✕</button>
+                                </div>
+                                <input type="hidden" name="image_url" id="reply-image-url-{{ msg.id }}" value="">
+                                <input type="file" accept="image/*" id="reply-img-input-{{ msg.id }}"
+                                       style="display:none"
+                                       onchange="uploadReplyImage({{ msg.id }}, this)">
                                 <textarea name="content" placeholder="回复 {{ msg.username }}..." required></textarea>
                                 <input type="hidden" name="reply_to" value="{{ msg.id }}">
                                 <button type="submit" class="btn-reply">回复</button>
@@ -246,6 +648,11 @@
                                     <span class="time">{{ r.created_at }}</span>
                                 </div>
                                 <div class="content">{{ r.content }}</div>
+                                {% if r.image_url %}
+                                <div class="reply-image">
+                                    <img src="{{ r.image_url }}" alt="回复图片" onclick="viewImage(this.src)">
+                                </div>
+                                {% endif %}
                                 <div class="msg-actions" style="margin-top:4px;">
                                     <a href="#" onclick="showReply({{ msg.id }}); return false;">💬 回复</a>
                                     {% if admin or (email and email == r.user_email) %}
@@ -267,12 +674,191 @@
         </div>
     </div>
 
+    <!-- 图片查看器 -->
+    <div class="image-viewer" id="image-viewer" onclick="closeViewer()">
+        <img id="viewer-img" src="" alt="查看图片">
+    </div>
+
+    <!-- 隐藏的文件输入（主表单用） -->
+    <input type="file" accept="image/*" id="img-input" style="display:none" onchange="uploadImage(this)">
+
     <script>
+    // ===== 表情功能 =====
+    var currentEmojiPanel = null;
+
+    function toggleEmoji(type) {
+        var panel = document.getElementById("emoji-panel-" + type);
+        if (!panel) return;
+        var isShow = panel.classList.toggle("show");
+        var btn = document.getElementById("emoji-toggle");
+        if (btn) btn.classList.toggle("active", isShow);
+    }
+
+    function insertEmoji(type, emoji) {
+        var textarea;
+        if (type === "main") {
+            textarea = document.getElementById("msg-content");
+        } else {
+            textarea = document.getElementById("reply-content-" + type);
+        }
+        if (!textarea) return;
+
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var text = textarea.value;
+        textarea.value = text.substring(0, start) + emoji + text.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        textarea.focus();
+    }
+
+    function insertReplyEmoji(id, emoji) {
+        var form = document.getElementById("reply-form-" + id);
+        if (!form) return;
+        var textarea = form.querySelector("textarea[name='content']");
+        if (!textarea) return;
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var text = textarea.value;
+        textarea.value = text.substring(0, start) + emoji + text.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        textarea.focus();
+    }
+
+    function toggleReplyEmoji(id) {
+        var panel = document.getElementById("reply-emoji-" + id);
+        if (panel) panel.classList.toggle("show");
+    }
+
+    // ===== 图片上传功能（主表单） =====
+    function uploadImage(input) {
+        var file = input.files[0];
+        if (!file) return;
+
+        // 检查文件大小（5MB）
+        if (file.size > 5 * 1024 * 1024) {
+            showUploadError("main", "图片不能超过 5MB");
+            input.value = "";
+            return;
+        }
+
+        var status = document.getElementById("upload-status-main");
+        var error = document.getElementById("upload-error-main");
+        status.classList.add("show");
+        status.textContent = "⏳ 上传中...";
+        error.classList.remove("show");
+
+        var formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/api/upload", {
+            method: "POST",
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            status.classList.remove("show");
+            if (data.error) {
+                showUploadError("main", data.error);
+                return;
+            }
+            document.getElementById("image-url-main").value = data.url;
+            var preview = document.getElementById("upload-preview-main");
+            var img = document.getElementById("preview-img-main");
+            img.src = data.url;
+            preview.classList.add("show");
+        })
+        .catch(function(err) {
+            status.classList.remove("show");
+            showUploadError("main", "上传失败：" + err.message);
+        });
+
+        input.value = "";
+    }
+
+    function removeImage(type) {
+        document.getElementById("image-url-" + type).value = "";
+        document.getElementById("upload-preview-" + type).classList.remove("show");
+        document.getElementById("preview-img-" + type).src = "";
+    }
+
+    function showUploadError(type, msg) {
+        var el = document.getElementById("upload-error-" + type);
+        if (el) {
+            el.textContent = "❌ " + msg;
+            el.classList.add("show");
+            setTimeout(function() { el.classList.remove("show"); }, 4000);
+        }
+    }
+
+    // ===== 图片上传功能（回复表单） =====
+    function uploadReplyImage(id, input) {
+        var file = input.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert("图片不能超过 5MB");
+            input.value = "";
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/api/upload", {
+            method: "POST",
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                alert("上传失败：" + data.error);
+                return;
+            }
+            document.getElementById("reply-image-url-" + id).value = data.url;
+            var preview = document.getElementById("reply-upload-preview-" + id);
+            var img = document.getElementById("reply-preview-img-" + id);
+            img.src = data.url;
+            preview.classList.add("show");
+        })
+        .catch(function(err) {
+            alert("上传失败：" + err.message);
+        });
+
+        input.value = "";
+    }
+
+    function removeReplyImage(id) {
+        document.getElementById("reply-image-url-" + id).value = "";
+        document.getElementById("reply-upload-preview-" + id).classList.remove("show");
+        document.getElementById("reply-preview-img-" + id).src = "";
+    }
+
+    // ===== 图片查看器 =====
+    function viewImage(src) {
+        var viewer = document.getElementById("image-viewer");
+        var img = document.getElementById("viewer-img");
+        img.src = src;
+        viewer.classList.add("show");
+    }
+
+    function closeViewer() {
+        document.getElementById("image-viewer").classList.remove("show");
+    }
+
+    // ESC 键关闭查看器
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") closeViewer();
+    });
+
+    // ===== 原有功能 =====
     function showReply(id) {
         document.getElementById("reply-form-" + id).style.display = "block";
     }
     function hideReply(id) {
         document.getElementById("reply-form-" + id).style.display = "none";
+        // 也关闭回复的表情面板
+        var ep = document.getElementById("reply-emoji-" + id);
+        if (ep) ep.classList.remove("show");
     }
     </script>
 </body>
