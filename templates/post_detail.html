@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>帖子详情 - 承德应职院微墙</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding-bottom: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 14px 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header a { color: white; text-decoration: none; font-size: 20px; }
+        .header h1 { font-size: 16px; font-weight: bold; flex: 1; }
+        .container { max-width: 700px; margin: 0 auto; padding: 10px 12px; }
+
+        .post-card {
+            background: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .post-header {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+        }
+        .post-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 16px; font-weight: bold; flex-shrink: 0;
+        }
+        .post-username { font-size: 14px; font-weight: 600; color: #333; }
+        .post-meta { font-size: 11px; color: #bbb; display: flex; gap: 6px; align-items: center; }
+        .post-category {
+            font-size: 10px; padding: 1px 8px; border-radius: 8px; font-weight: bold;
+        }
+        .cat-message { background: #e8ebff; color: #667eea; }
+        .cat-daily { background: #fff3e0; color: #e67e22; }
+        .cat-used { background: #e8f5e9; color: #27ae60; }
+
+        .post-content {
+            font-size: 15px; line-height: 1.7; color: #333;
+            white-space: pre-wrap; word-break: break-word; margin-bottom: 8px;
+        }
+        .post-images img {
+            max-width: 100%; max-height: 300px; border-radius: 8px;
+            cursor: pointer; margin-bottom: 8px;
+        }
+        .post-stats {
+            color: #bbb; font-size: 12px; padding-top: 6px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .post-stats .liked { color: #e74c3c; }
+
+        /* ===== 评论列表 ===== */
+        .comments-title {
+            font-size: 15px; color: #333; padding: 12px 0 8px;
+            font-weight: bold;
+        }
+        .comment-item {
+            background: white; border-radius: 10px;
+            padding: 12px 14px; margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .comment-header {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+        }
+        .comment-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #e0e0e0; display: flex; align-items: center;
+            justify-content: center; font-size: 12px; color: #999; flex-shrink: 0;
+        }
+        .comment-name { font-size: 13px; font-weight: 600; color: #667eea; }
+        .comment-time { font-size: 10px; color: #ccc; margin-left: auto; }
+        .comment-content { font-size: 14px; color: #333; line-height: 1.6; }
+        .comment-content img {
+            max-width: 100px; max-height: 100px; border-radius: 4px; margin-top: 4px; cursor: pointer;
+        }
+        .comment-empty {
+            text-align: center; padding: 40px; color: #ccc; font-size: 14px;
+        }
+
+        /* ===== 回复输入框 ===== */
+        .reply-box {
+            background: white; border-radius: 12px; padding: 14px 16px;
+            margin-top: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .reply-box textarea {
+            width: 100%; min-height: 60px; padding: 10px;
+            border: 1px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; outline: none; resize: vertical;
+            font-family: inherit;
+        }
+        .reply-box textarea:focus { border-color: #667eea; }
+        .reply-box .reply-toolbar {
+            display: flex; gap: 6px; margin: 6px 0;
+        }
+        .reply-box .reply-toolbar button {
+            padding: 4px 10px; border: 1px solid #e0e0e0;
+            border-radius: 4px; background: white; cursor: pointer; font-size: 14px;
+        }
+        .reply-box .reply-toolbar button:hover { border-color: #667eea; }
+        .reply-box .btn-send {
+            width: 100%; padding: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 6px;
+        }
+        .reply-box .btn-send:active { opacity: 0.8; }
+
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: rgba(0,0,0,0.75); color: white; padding: 10px 20px;
+            border-radius: 8px; font-size: 14px; z-index: 9999;
+            display: none; pointer-events: none;
+        }
+        .toast.show { display: block; }
+
+        .image-viewer {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.85); z-index:999;
+            justify-content: center; align-items: center; cursor: pointer;
+        }
+        .image-viewer.show { display: flex; }
+        .image-viewer img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+
+        @media (max-width: 600px) {
+            .header { padding: 12px; }
+            .header h1 { font-size: 14px; }
+            .container { padding: 8px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="javascript:history.back()" id="back-btn">←</a>
+        <h1>帖子详情</h1>
+    </div>
+    <script>
+    // 如果是从搜索来的，保存 from=search 状态
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('from') === 'search') {
+        var backBtn = document.getElementById('back-btn');
+        var q = urlParams.get('q') || '';
+        backBtn.href = '/?category=latest&from=search&q=' + encodeURIComponent(q);
+    }
+    </script>
+
+    <div class="container">
+        <!-- 帖子内容 -->
+        <div class="post-card">
+            <div class="post-header">
+                <div class="post-avatar">{{ post.username[:1] }}</div>
+                <div>
+                    <div class="post-username">{{ post.username }}</div>
+                    <div class="post-meta">
+                        <span>{{ post.created_at }}</span>
+                        <span class="post-category cat-{{ post.category }}">
+                            {% if post.category == 'message' %}留言板
+                            {% elif post.category == 'daily' %}日常投稿
+                            {% elif post.category == 'used' %}二手闲置
+                            {% else %}留言板{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="post-content">{{ post.content }}</div>
+            {% if post.image_url %}
+            <div class="post-images">
+                <img src="{{ post.image_url }}" alt="图片" onclick="viewImage(this.src)">
+            </div>
+            {% endif %}
+            <div class="post-stats">
+                {% if post.liked %}❤️{% else %}🤍{% endif %} {{ post.likes_count or 0 }}
+                &nbsp;💬 {{ post.replies_count or 0 }} 条评论
+            </div>
+        </div>
+
+        <!-- 评论标题 -->
+        <div class="comments-title">💬 全部评论（{{ post.replies_count or 0 }} 条）</div>
+
+        <!-- 评论列表 -->
+        <div id="comments-list">
+            {% if post.replies_list %}
+                {% for r in post.replies_list %}
+                <div class="comment-item" id="comment-{{ r.id }}">
+                    <div class="comment-header">
+                        <div class="comment-avatar">{{ r.username[:1] }}</div>
+                        <span class="comment-name">{{ r.username }}</span>
+                        <span class="comment-time">{{ r.created_at }}</span>
+                    </div>
+                    <div class="comment-content">{{ r.content }}
+                        {% if r.image_url %}<br><img src="{{ r.image_url }}" onclick="viewImage(this.src)">{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="comment-empty">暂无评论，快来第一条吧！</div>
+            {% endif %}
+        </div>
+
+        <!-- 回复输入 -->
+        {% if email %}
+        <div class="reply-box">
+            <div class="reply-toolbar">
+                <button type="button" onclick="toggleEmoji()">😊</button>
+            </div>
+            <textarea id="reply-content" placeholder="回复 {{ post.username }}..." rows="2"></textarea>
+            <button class="btn-send" onclick="sendReply({{ post.id }})">发送回复</button>
+        </div>
+        {% else %}
+        <div class="reply-box" style="text-align:center;color:#999;padding:20px;">
+            <a href="/login" style="color:#667eea;">登录</a> 后即可回复
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 图片查看器 -->
+    <div class="image-viewer" id="image-viewer" onclick="closeViewer()">
+        <img id="viewer-img" src="">
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+    function showToast(msg) {
+        var t = document.getElementById("toast");
+        t.textContent = msg; t.classList.add("show");
+        setTimeout(function(){ t.classList.remove("show"); }, 2000);
+    }
+
+    function viewImage(src) {
+        document.getElementById("viewer-img").src = src;
+        document.getElementById("image-viewer").classList.add("show");
+    }
+    function closeViewer() {
+        document.getElementById("image-viewer").classList.remove("show");
+    }
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") closeViewer();
+    });
+
+    function toggleEmoji() {
+        var ta = document.getElementById("reply-content");
+        var emojis = ["😀","😂","😊","😍","👍","❤️","🔥","🎉","💪","🙏","🐱","🌸","🍔","🚀","💯","🎯","⭐","💀"];
+        var emoji = emojis[Math.floor(Math.random() * emojis.length)];
+        var start = ta.selectionStart;
+        var end = ta.selectionEnd;
+        ta.value = ta.value.substring(0, start) + emoji + ta.value.substring(end);
+        ta.selectionStart = ta.selectionEnd = start + emoji.length;
+        ta.focus();
+    }
+
+    function sendReply(postId) {
+        var ta = document.getElementById("reply-content");
+        var content = ta.value.trim();
+        if (!content) { showToast("❌ 请输入内容"); return; }
+
+        var btn = document.querySelector(".btn-send");
+        btn.disabled = true; btn.textContent = "⏳ 发送中...";
+
+        fetch("/api/reply", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({content: content, reply_to: postId})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.disabled = false; btn.textContent = "发送回复";
+            if (data.error) { showToast("❌ " + data.error); return; }
+
+            // 追加新评论到列表
+            var list = document.getElementById("comments-list");
+            var empty = list.querySelector(".comment-empty");
+            if (empty) empty.remove();
+
+            var div = document.createElement("div");
+            div.className = "comment-item";
+            div.id = "comment-" + data.id;
+            div.innerHTML = '<div class="comment-header">' +
+                '<div class="comment-avatar">' + escapeHtml(data.username.charAt(0)) + '</div>' +
+                '<span class="comment-name">' + escapeHtml(data.username) + '</span>' +
+                '<span class="comment-time">' + escapeHtml(data.created_at) + '</span></div>' +
+                '<div class="comment-content">' + escapeHtml(data.content) + '</div>';
+            list.appendChild(div);
+
+            // 清空输入
+            ta.value = "";
+            // 更新评论数
+            var title = document.querySelector(".comments-title");
+            var count = parseInt(title.textContent.match(/\d+/)) + 1;
+            title.textContent = "💬 全部评论（" + count + " 条）";
+            showToast("✅ 回复成功");
+        })
+        .catch(function() {
+            btn.disabled = false; btn.textContent = "发送回复";
+            showToast("❌ 发送失败");
+        });
+    }
+
+    function escapeHtml(text) {
+        var d = document.createElement("div");
+        d.textContent = text;
+        return d.innerHTML;
+    }
+    </script>
+</body>
+</html>

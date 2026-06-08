@@ -2,82 +2,491 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>留言板</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>承德应职院微墙</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: "Microsoft YaHei", Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: #f5f5f5;
             min-height: 100vh;
-            padding: 40px 20px;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            padding-bottom: 65px;
         }
 
-        /* ===== 顶部栏 ===== */
-        .top-bar {
+        /* ===== 顶部 ===== */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 16px 12px;
+            color: white;
+            text-align: center;
+        }
+        .header h1 { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
+        .header .sub { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+        /* ===== 搜索框 ===== */
+        .search-bar {
+            padding: 10px 16px;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 8px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+            background: #f5f5f5 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") 12px center no-repeat;
+            background-size: 16px;
+            padding-left: 36px;
+            transition: all 0.3s;
+        }
+        .search-bar input:focus {
+            border-color: #667eea;
+            background-color: white;
+        }
+
+        /* ===== 版权 + 功能入口 ===== */
+        .info-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 6px 16px;
+            background: white;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            color: #999;
+            flex-wrap: wrap;
+        }
+        .info-row .copyright { color: #bbb; }
+        .info-row .wechat {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline dotted;
+        }
+        .info-row .wechat:active { opacity: 0.7; }
+        .info-row .func-btn {
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .func-btn-ai { background: #e8ebff; color: #667eea; }
+        .func-btn-img { background: #fff3e0; color: #e67e22; }
+
+        /* ===== 用户栏 ===== */
+        .user-bar {
+            padding: 6px 16px;
+            background: white;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+        .user-bar a { color: #667eea; text-decoration: none; }
+        .user-bar .logout-link { color: #ccc; }
+        .user-bar .logout-link:hover { color: #e74c3c; }
+        .user-bar .sep { color: #eee; }
+
+        /* ===== 热榜入口 ===== */
+        .hot-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: linear-gradient(90deg, #fff5f5, #fff0f6, #fff5f5);
+            border-bottom: 1px solid #ffe0e0;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            overflow: hidden;
+        }
+        .hot-bar:hover { background: linear-gradient(90deg, #ffe0e0, #ffd6e7, #ffe0e0); }
+        .hot-bar .fire { font-size: 18px; animation: hot-pulse 1.5s infinite; }
+        @keyframes hot-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        .hot-bar .hot-label {
+            background: linear-gradient(90deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .hot-bar .arrow { margin-left: auto; color: #ccc; font-size: 12px; transition: transform 0.3s; }
+        .hot-bar .arrow.open { transform: rotate(180deg); }
+
+        /* ===== 热榜面板 ===== */
+        .hot-panel {
+            display: none;
+            background: white;
+            border-bottom: 1px solid #eee;
+            padding: 12px 16px;
+        }
+        .hot-panel.show { display: block; }
+        .hot-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 13px;
+        }
+        .hot-item:last-child { border-bottom: none; }
+        .hot-item .rank {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+        .hot-item .rank.r1 { background: linear-gradient(135deg, #f9ca24, #f0932b); }
+        .hot-item .rank.r2 { background: linear-gradient(135deg, #a0a0a0, #7f8c8d); }
+        .hot-item .rank.r3 { background: linear-gradient(135deg, #e17055, #d35400); }
+        .hot-item .rank.rn { background: #ddd; color: #999; }
+        .hot-item .hot-title { flex: 1; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hot-item .hot-count { color: #e74c3c; font-size: 12px; font-weight: bold; }
+        .hot-empty { text-align: center; color: #ccc; padding: 20px; font-size: 13px; }
+
+        /* ===== Tab 切换 ===== */
+        .tab-bar {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .tab-bar a {
+            flex: 1;
+            text-align: center;
+            padding: 12px 4px;
+            font-size: 13px;
+            color: #999;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-bar a.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+        .tab-bar a:hover { color: #667eea; }
+
+        /* ===== 帖子列表 ===== */
+        .post-list { padding: 8px 12px; max-width: 700px; margin: 0 auto; }
+        .post-card {
+            background: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s;
+        }
+        .post-card:active { box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+        /* 头部：头像+用户名+时间+标签 */
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .post-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .post-user-info { flex: 1; min-width: 0; }
+        .post-username {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        .post-meta {
+            font-size: 11px;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .post-category {
+            font-size: 10px;
+            padding: 1px 8px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .cat-message { background: #e8ebff; color: #667eea; }
+        .cat-daily { background: #fff3e0; color: #e67e22; }
+        .cat-used { background: #e8f5e9; color: #27ae60; }
+
+        /* 内容 */
+        .post-content {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 8px;
+        }
+
+        /* 图片九宫格 */
+        .post-images {
+            display: grid;
+            gap: 3px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .post-images.grid-1 { grid-template-columns: 1fr; }
+        .post-images.grid-2 { grid-template-columns: 1fr 1fr; }
+        .post-images.grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .post-images.grid-4 { grid-template-columns: 1fr 1fr; }
+        .post-images img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .post-images img:active { opacity: 0.8; }
+
+        /* 操作栏 */
+        .post-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding-top: 8px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .post-actions button, .post-actions a {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            font-size: 13px;
+            color: #999;
+            cursor: pointer;
+            text-decoration: none;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .post-actions button:hover, .post-actions a:hover { background: #f5f5f5; }
+        .post-actions .liked { color: #e74c3c; }
+        .post-actions .liked .heart { animation: like-bounce 0.3s; }
+        @keyframes like-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        .post-actions .btn-del { color: #e74c3c; }
+        .post-actions .btn-del:hover { color: #c0392b; background: #ffe0e0; }
+        .post-actions .reply-link { margin-left: auto; }
+
+        /* ===== 回复区 ===== */
+        .replies-area {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .reply-item {
+            padding: 6px 0;
+            font-size: 13px;
+            color: #555;
+            display: flex;
+            gap: 6px;
+        }
+        .reply-item .r-avatar {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #999;
+            flex-shrink: 0;
+        }
+        .reply-item .r-body { flex: 1; min-width: 0; }
+        .reply-item .r-name { color: #667eea; font-weight: bold; font-size: 12px; }
+        .reply-item .r-text { color: #333; line-height: 1.5; }
+        .reply-item .r-text img {
+            max-width: 100px; max-height: 100px;
+            border-radius: 4px; margin-top: 4px; cursor: pointer;
+        }
+        .reply-item .r-time { font-size: 10px; color: #ccc; margin-top: 2px; }
+        .reply-entry { margin-top: 8px; }
+        .reply-entry .reply-link {
+            color: #667eea; font-size: 12px; text-decoration: none;
+        }
+        .reply-entry .reply-link:hover { text-decoration: underline; }
+        .reply-form-inline {
+            display: none; margin-top: 6px;
+        }
+        .reply-form-inline.show { display: flex; gap: 6px; }
+        .reply-form-inline input {
+            flex: 1; padding: 6px 10px; border: 1px solid #e0e0e0;
+            border-radius: 16px; font-size: 13px; outline: none;
+        }
+        .reply-form-inline input:focus { border-color: #667eea; }
+        .reply-form-inline button {
+            padding: 6px 14px; border: none; border-radius: 16px;
+            background: #667eea; color: white; font-size: 12px; cursor: pointer;
+        }
+
+        /* ===== 空状态 ===== */
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: #ccc;
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+        .empty-state p { font-size: 14px; }
+
+        /* ===== 底部导航 ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 55px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 100;
+        }
+        .bottom-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #999;
+            font-size: 10px;
+            gap: 2px;
+            transition: color 0.2s;
+        }
+        .bottom-nav a.active { color: #667eea; }
+        .bottom-nav a .nav-icon { font-size: 22px; line-height: 1; }
+        .bottom-nav .publish-btn {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(102,126,234,0.4);
+            cursor: pointer;
+            border: none;
+            margin-top: -10px;
+            transition: transform 0.2s;
+        }
+        .bottom-nav .publish-btn:active { transform: scale(0.9); }
+
+        /* ===== 发布弹窗 ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            justify-content: center;
+            align-items: flex-end;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-content {
+            background: white;
+            border-radius: 16px 16px 0 0;
+            padding: 20px 16px 30px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slide-up 0.3s;
+        }
+        @keyframes slide-up {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .modal-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 15px;
         }
-        .top-bar h1 { font-size: 24px; color: #333; }
-        .top-btns { display: flex; gap: 8px; }
-        .top-btn {
-            padding: 8px 14px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: bold;
-            transition: all 0.3s;
+        .modal-header h3 { font-size: 16px; color: #333; }
+        .modal-close {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: none; background: #f0f0f0;
+            font-size: 16px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
         }
-        .btn-qr {
-            background: #f0f0f0;
-            color: #333;
-        }
-        .btn-qr:hover { background: #e0e0e0; }
-        .btn-ai {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-        }
-        .btn-ai:hover { opacity: 0.9; }
 
-        .user-bar {
-            text-align: center;
-            font-size: 14px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .user-info { color: #667eea; font-weight: bold; margin-right: 10px; }
-        .login-link { color: #667eea; text-decoration: none; margin: 0 5px; }
-        .logout-link { color: #999; text-decoration: none; font-size: 13px; }
-
-        /* ===== 表单 ===== */
-        .form-group { margin-bottom: 15px; }
-        .form-group textarea {
-            width: 100%; padding: 12px 15px;
-            border: 2px solid #e0e0e0; border-radius: 8px;
-            font-size: 15px; outline: none; resize: vertical;
-            height: 80px; transition: border-color 0.3s;
-        }
-        .form-group textarea:focus { border-color: #667eea; }
-
-        /* ===== 工具栏（表情 + 图片上传） ===== */
-        .toolbar {
+        /* 分类选择标签 */
+        .category-select {
             display: flex;
-            gap: 6px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
         }
-        .toolbar-btn {
+        .category-select label {
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #999;
+        }
+        .category-select input { display: none; }
+        .category-select input:checked + label {
+            border-color: #667eea;
+            background: #e8ebff;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        /* 发布表单 */
+        .publish-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .publish-textarea:focus { border-color: #667eea; }
+
+        .publish-toolbar {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        .publish-toolbar button {
             padding: 6px 12px;
             border: 1px solid #e0e0e0;
             border-radius: 6px;
@@ -86,780 +495,791 @@
             font-size: 16px;
             transition: all 0.2s;
         }
-        .toolbar-btn:hover {
-            background: #f0f2ff;
-            border-color: #667eea;
-        }
-        .toolbar-btn.active {
-            background: #667eea;
-            border-color: #667eea;
-            color: white;
-        }
+        .publish-toolbar button:hover { border-color: #667eea; background: #f8f9ff; }
 
-        /* ===== 表情面板 ===== */
-        .emoji-panel {
+        .publish-emoji-panel {
             display: none;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
-            padding: 10px;
+            padding: 8px;
             margin-bottom: 8px;
-            background: #fafafa;
-            max-height: 180px;
+            max-height: 150px;
             overflow-y: auto;
+            background: #fafafa;
         }
-        .emoji-panel.show { display: block; }
-        .emoji-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 2px;
+        .publish-emoji-panel.show { display: block; }
+        .publish-emoji-panel button {
+            width: 34px; height: 34px; font-size: 20px;
+            border: none; background: transparent; cursor: pointer; border-radius: 4px;
         }
-        .emoji-grid button {
-            width: 36px; height: 36px;
-            border: none; border-radius: 4px;
-            background: transparent;
-            font-size: 20px;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .emoji-grid button:hover {
-            background: #e0e0e0;
-            transform: scale(1.15);
-        }
-        .emoji-category {
-            font-size: 12px; color: #999;
-            padding: 4px 0 2px;
-            font-weight: bold;
-        }
+        .publish-emoji-panel button:hover { background: #e0e0e0; transform: scale(1.15); }
 
-        /* ===== 图片上传 ===== */
-        .upload-area {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .upload-preview {
-            display: none;
-            position: relative;
+        .publish-preview {
+            display: none; position: relative;
             margin-bottom: 8px;
         }
-        .upload-preview.show { display: inline-block; }
-        .upload-preview img {
-            max-width: 100%;
-            max-height: 180px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
+        .publish-preview.show { display: inline-block; }
+        .publish-preview img {
+            max-width: 100%; max-height: 200px;
+            border-radius: 8px; border: 1px solid #e0e0e0;
         }
-        .upload-preview .remove-btn {
-            position: absolute;
-            top: 4px; right: 4px;
-            width: 24px; height: 24px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(0,0,0,0.6);
-            color: white;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .publish-preview .remove-btn {
+            position: absolute; top: 4px; right: 4px;
+            width: 24px; height: 24px; border-radius: 50%; border: none;
+            background: rgba(0,0,0,0.6); color: white; font-size: 12px; cursor: pointer;
         }
-        .upload-preview .remove-btn:hover { background: rgba(231,76,60,0.9); }
-        .upload-status {
-            font-size: 13px; color: #999;
-            display: none;
-        }
-        .upload-status.show { display: inline; }
-        .upload-error {
-            font-size: 13px; color: #e74c3c;
-            display: none;
-        }
-        .upload-error.show { display: inline; }
 
-        .btn-submit {
+        .publish-btn-submit {
             width: 100%; padding: 12px;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white; border: none; border-radius: 8px;
-            font-size: 16px; cursor: pointer;
-            transition: transform 0.2s;
+            font-size: 15px; font-weight: bold; cursor: pointer;
+            transition: opacity 0.2s;
         }
-        .btn-submit:hover { transform: translateY(-2px); }
-        .login-tip {
-            text-align: center; padding: 30px; background: #f8f9ff;
-            border-radius: 10px; margin-top: 20px;
-        }
-        .login-tip a { color: #667eea; font-weight: bold; text-decoration: none; }
+        .publish-btn-submit:active { opacity: 0.8; }
 
-        /* ===== 留言列表 ===== */
-        .messages { margin-top: 25px; }
-        .messages h2 {
-            font-size: 18px; color: #333;
-            padding-bottom: 10px; border-bottom: 2px solid #f0f0f0;
-            margin-bottom: 15px;
-        }
-        .message-card {
-            background: #f8f9ff; border-radius: 10px;
-            padding: 15px; margin-bottom: 12px;
-            border-left: 4px solid #667eea;
-        }
-        .message-card .msg-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 6px;
-        }
-        .message-card .username {
-            font-weight: bold; color: #667eea; font-size: 14px;
-        }
-        .message-card .time {
-            color: #bbb; font-size: 12px;
-        }
-        .message-card .content {
-            color: #444; line-height: 1.6; white-space: pre-wrap;
-            font-size: 15px;
-        }
-        /* ===== 留言中的图片 ===== */
-        .msg-image {
-            margin-top: 8px;
-        }
-        .msg-image img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 8px;
-            border: 1px solid #e8e8e8;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .msg-image img:hover {
-            transform: scale(1.02);
-        }
-
-        .msg-actions {
-            margin-top: 8px; display: flex; gap: 10px;
-        }
-        .msg-actions a, .msg-actions button {
-            font-size: 12px; color: #999; text-decoration: none;
-            background: none; border: none; cursor: pointer;
-        }
-        .msg-actions a:hover, .msg-actions button:hover { color: #667eea; }
-        .msg-actions .btn-del { color: #e74c3c; }
-        .msg-actions .btn-del:hover { color: #c0392b; }
-
-        /* ===== 回复 ===== */
-        .replies {
-            margin-left: 20px; margin-top: 10px;
-            padding-left: 12px; border-left: 3px solid #d0d5ff;
-        }
-        .reply-card {
-            background: #f0f2ff; border-radius: 8px;
-            padding: 10px 12px; margin-bottom: 8px;
-        }
-        .reply-card .username {
-            font-weight: bold; color: #764ba2; font-size: 13px;
-        }
-        .reply-card .content {
-            color: #444; font-size: 14px; margin-top: 3px;
-            white-space: pre-wrap;
-        }
-        .reply-card .time { color: #ccc; font-size: 11px; }
-        .reply-card .reply-image img {
-            max-width: 100%; max-height: 200px;
-            border-radius: 6px; margin-top: 6px;
-            border: 1px solid #e8e8e8; cursor: pointer;
-        }
-
-        /* ===== 回复表单 ===== */
-        .reply-form {
-            display: none; margin-top: 10px;
-            padding: 10px; background: #f0f2ff; border-radius: 8px;
-        }
-        .reply-form textarea {
-            width: 100%; padding: 8px 10px;
-            border: 2px solid #d0d5ff; border-radius: 6px;
-            font-size: 14px; outline: none; resize: vertical;
-            height: 60px;
-        }
-        .reply-form textarea:focus { border-color: #667eea; }
-        .reply-form .reply-toolbar {
-            display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap;
-        }
-        .reply-form .reply-toolbar button {
-            padding: 4px 10px; border: 1px solid #d0d5ff;
-            border-radius: 4px; background: white; cursor: pointer;
-            font-size: 14px; transition: all 0.2s;
-        }
-        .reply-form .reply-toolbar button:hover { background: #e8ebff; }
-        .reply-form .reply-emoji-panel {
-            display: none; border: 1px solid #d0d5ff;
-            border-radius: 6px; padding: 8px; background: white;
-            margin-bottom: 6px; max-height: 120px; overflow-y: auto;
-        }
-        .reply-form .reply-emoji-panel.show { display: block; }
-        .reply-form .reply-emoji-panel button {
-            width: 32px; height: 32px; font-size: 18px;
-            border: none; background: transparent; cursor: pointer; border-radius: 3px;
-        }
-        .reply-form .reply-emoji-panel button:hover { background: #f0f0f0; }
-        .reply-form .reply-upload-preview {
-            display: none; margin-bottom: 6px; position: relative;
-        }
-        .reply-form .reply-upload-preview.show { display: inline-block; }
-        .reply-form .reply-upload-preview img {
-            max-width: 100%; max-height: 120px; border-radius: 6px;
-            border: 1px solid #d0d5ff;
-        }
-        .reply-form .reply-upload-preview .remove-btn {
-            position: absolute; top: 2px; right: 2px;
-            width: 22px; height: 22px; border-radius: 50%; border: none;
-            background: rgba(0,0,0,0.6); color: white; font-size: 12px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
-        .reply-form .btn-reply {
-            margin-top: 6px; padding: 6px 16px;
-            background: #667eea; color: white; border: none;
-            border-radius: 6px; cursor: pointer; font-size: 13px;
-        }
-        .reply-form .btn-cancel {
-            margin-top: 6px; padding: 6px 16px;
-            background: #f0f0f0; color: #999; border: none;
-            border-radius: 6px; cursor: pointer; font-size: 13px;
-        }
-        .empty { text-align: center; color: #ccc; padding: 40px 0; }
-
-        /* ===== 图片查看器弹窗 ===== */
+        /* ===== 图片查看器 ===== */
         .image-viewer {
             display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 999;
+            justify-content: center; align-items: center; cursor: pointer;
         }
         .image-viewer.show { display: flex; }
-        .image-viewer img {
-            max-width: 90%;
-            max-height: 90%;
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        .image-viewer img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+
+        /* ===== 搜索弹窗（全新设计） ===== */
+        .search-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 150;
+            flex-direction: column;
+        }
+        .search-overlay.show { display: flex; }
+        .search-overlay .search-top {
+            padding: 16px 16px 12px;
+            display: flex; gap: 10px;
+            align-items: center;
+        }
+        .search-overlay .search-top input {
+            flex: 1; padding: 10px 16px; border: none;
+            border-radius: 20px; font-size: 15px; outline: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            transition: background 0.3s;
+        }
+        .search-overlay .search-top input::placeholder { color: rgba(255,255,255,0.6); }
+        .search-overlay .search-top input:focus { background: rgba(255,255,255,0.3); }
+        .search-overlay .search-top .cancel-btn {
+            color: white; font-size: 14px; cursor: pointer; white-space: nowrap;
+            opacity: 0.8;
+        }
+        .search-overlay .search-top .cancel-btn:hover { opacity: 1; }
+        .search-results {
+            flex: 1; overflow-y: auto; padding: 8px 12px 20px;
+            border-radius: 20px 20px 0 0;
+            background: #f5f5f5;
+            margin-top: 8px;
         }
 
-        /* ===== 移动端适配 ===== */
+        /* 热榜标题 */
+        .hot-section-title {
+            display: flex; align-items: center; gap: 8px;
+            padding: 16px 4px 12px; font-size: 16px; font-weight: bold;
+            color: #333;
+        }
+        .hot-section-title .fire { font-size: 20px; animation: hot-pulse 1.5s infinite; }
+
+        /* 热榜卡片 */
+        .hot-card {
+            background: white; border-radius: 12px; padding: 12px 14px;
+            margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hot-card:active { transform: scale(0.98); }
+        .hot-card .rank-badge {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: bold; flex-shrink: 0;
+        }
+        .hot-card .rank-badge.r1 { background: linear-gradient(135deg, #f9ca24, #f0932b); font-size: 18px; }
+        .hot-card .rank-badge.r2 { background: linear-gradient(135deg, #a0a0a0, #7f8c8d); font-size: 16px; }
+        .hot-card .rank-badge.r3 { background: linear-gradient(135deg, #e17055, #d35400); font-size: 15px; }
+        .hot-card .rank-badge.rn { background: #e0e0e0; color: #999; font-size: 13px; }
+        .hot-card .hot-info { flex: 1; min-width: 0; }
+        .hot-card .hot-text {
+            font-size: 14px; color: #333; line-height: 1.4;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .hot-card .hot-meta { font-size: 11px; color: #bbb; margin-top: 3px; }
+        .hot-card .hot-stats {
+            text-align: right; flex-shrink: 0;
+        }
+        .hot-card .hot-stats .stat-num { font-size: 15px; font-weight: bold; }
+        .hot-card .hot-stats .stat-label { font-size: 10px; color: #bbb; }
+        .hot-card .hot-stats .likes { color: #e74c3c; }
+        .hot-card .hot-stats .comments-s { color: #667eea; }
+
+        /* 搜索模式下的帖子卡片 */
+        .search-post-card {
+            background: white; border-radius: 12px; padding: 12px 14px;
+            margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            cursor: pointer;
+        }
+        .search-post-card .sp-header {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+        }
+        .search-post-card .sp-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 12px; font-weight: bold; flex-shrink: 0;
+        }
+        .search-post-card .sp-name { font-size: 13px; font-weight: 600; color: #333; }
+        .search-post-card .sp-time { font-size: 10px; color: #bbb; margin-left: auto; }
+        .search-post-card .sp-content {
+            font-size: 14px; color: #444; line-height: 1.5;
+            overflow: hidden; text-overflow: ellipsis;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+        }
+        .search-post-card .sp-actions {
+            display: flex; gap: 16px; margin-top: 8px; padding-top: 6px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .search-post-card .sp-actions button, .search-post-card .sp-actions a {
+            display: flex; align-items: center; gap: 4px;
+            background: none; border: none; font-size: 12px; color: #999;
+            cursor: pointer; text-decoration: none; padding: 2px 4px;
+        }
+        .search-post-card .sp-actions .liked { color: #e74c3c; }
+
+        .search-empty {
+            text-align: center; color: #ccc; padding: 60px 20px; font-size: 14px;
+        }
+        .search-empty .big-icon { font-size: 48px; margin-bottom: 10px; }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: rgba(0,0,0,0.75); color: white; padding: 10px 20px;
+            border-radius: 8px; font-size: 14px; z-index: 9999;
+            display: none; pointer-events: none;
+        }
+        .toast.show { display: block; animation: toast-fade 0.3s; }
+        @keyframes toast-fade {
+            from { opacity: 0; transform: translate(-50%,-30%); }
+            to { opacity: 1; transform: translate(-50%,-50%); }
+        }
+
+        /* ===== 加载 ===== */
+        .loading-dots {
+            text-align: center; color: #ccc; padding: 20px; font-size: 13px;
+        }
+
+        /* ===== 移动端 ===== */
         @media (max-width: 600px) {
-            body { padding: 20px 10px; }
-            .container { padding: 16px; border-radius: 12px; }
-            .top-bar h1 { font-size: 18px; }
-            .top-btn { font-size: 12px; padding: 6px 10px; }
-            .message-card .content { font-size: 14px; }
-            .replies { margin-left: 10px; padding-left: 8px; }
-            .emoji-grid button { width: 32px; height: 32px; font-size: 18px; }
-            .toolbar-btn { font-size: 14px; padding: 5px 10px; }
+            .header { padding: 16px 12px 10px; }
+            .header h1 { font-size: 17px; }
+            .tab-bar a { font-size: 12px; padding: 10px 4px; }
+            .post-card { padding: 12px 14px; border-radius: 10px; }
+            .post-content { font-size: 14px; }
+            .info-row { font-size: 11px; gap: 8px; }
+            .bottom-nav { height: 50px; }
+            .bottom-nav .publish-btn { width: 40px; height: 40px; font-size: 24px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 顶部栏 -->
-        <div class="top-bar">
-            <h1>📋 留言板</h1>
-            <div class="top-btns">
-                <a href="/qrcode" class="top-btn btn-qr">📱 二维码</a>
-                <a href="/ai" class="top-btn btn-ai">🤖 AI 助手</a>
-                <a href="/image-gen" class="top-btn btn-ai">🎨 生图</a>
-            </div>
-        </div>
+    <!-- ===== 顶部 ===== -->
+    <div class="header">
+        <h1>承德应职院微墙</h1>
+        <div class="sub">分享校园生活，记录点滴美好</div>
+    </div>
 
-        <!-- 用户栏 -->
-        <div class="user-bar">
-            {% if email %}
-                <span class="user-info">👤 {{ email }}</span>
-                <a href="/logout" class="logout-link">退出</a>
-            {% else %}
-                <a href="/login" class="login-link">登录</a>
-                <a href="/register" class="login-link">注册</a>
-            {% endif %}
-        </div>
+    <!-- ===== 搜索框 ===== -->
+    <div class="search-bar">
+        <input type="text" placeholder="🔍 搜索消息..." id="search-input" readonly onclick="openSearch()">
+    </div>
 
-        <!-- 留言表单 -->
+    <!-- ===== 版权 + 功能入口 ===== -->
+    <div class="info-row">
+        <span class="copyright">著作者:谢先生</span>
+        <span class="wechat" id="wechat-copy" onclick="copyWechat()">微信号:xjx200504091731</span>
+        <a href="/ai" class="func-btn func-btn-ai" target="_blank">🤖 AI助手</a>
+        <a href="/image-gen" class="func-btn func-btn-img" target="_blank">🎨 绘图</a>
+    </div>
+
+    <!-- ===== 热榜 ===== -->
+    <div class="hot-bar" onclick="toggleHot()">
+        <span class="fire">🔥</span>
+        <span class="hot-label">今日热榜</span>
+        <span>点击查看最火帖子</span>
+        <span class="arrow" id="hot-arrow">▼</span>
+    </div>
+    <div class="hot-panel" id="hot-panel">
+        <!-- 热榜内容由 JS 加载 -->
+        <div class="hot-empty" id="hot-loading">⏳ 加载中...</div>
+    </div>
+
+    <!-- ===== 用户栏（登录状态显示） ===== -->
+    <div class="user-bar">
         {% if email %}
-        <form action="/submit" method="POST" id="msg-form">
-            <div class="form-group">
-                <!-- 工具栏：表情 + 图片上传 -->
-                <div class="toolbar">
-                    <button type="button" class="toolbar-btn" id="emoji-toggle" onclick="toggleEmoji('main')">😊</button>
-                    <button type="button" class="toolbar-btn" onclick="document.getElementById('img-input').click()">🖼️</button>
+        <span>👤 {{ email }}</span>
+        <a href="/logout" class="logout-link">退出登录</a>
+        {% else %}
+        <a href="/login" class="login-link">登录</a>
+        <span class="sep">/</span>
+        <a href="/register" class="login-link">注册</a>
+        {% endif %}
+    </div>
+
+    <!-- ===== Tab 切换 ===== -->
+    <div class="tab-bar" id="tab-bar">
+        <a href="/?category=latest" class="{% if current_category == 'latest' %}active{% endif %}">最新</a>
+        <a href="/?category=message" class="{% if current_category == 'message' %}active{% endif %}">留言板</a>
+        <a href="/?category=daily" class="{% if current_category == 'daily' %}active{% endif %}">日常投稿</a>
+        <a href="/?category=used" class="{% if current_category == 'used' %}active{% endif %}">二手闲置</a>
+    </div>
+
+    <!-- ===== 帖子列表 ===== -->
+    <div class="post-list">
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="post-card" id="post-{{ msg.id }}">
+                <!-- 头部 -->
+                <div class="post-header">
+                    <div class="post-avatar">{{ msg.username[:1] }}</div>
+                    <div class="post-user-info">
+                        <div class="post-username">{{ msg.username }}</div>
+                        <div class="post-meta">
+                            <span>{{ msg.created_at }}</span>
+                            <span class="post-category cat-{{ msg.category }}">
+                                {% if msg.category == 'message' %}留言板
+                                {% elif msg.category == 'daily' %}日常投稿
+                                {% elif msg.category == 'used' %}二手闲置
+                                {% else %}留言板{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 内容 -->
+                <div class="post-content">{{ msg.content }}</div>
+
+                <!-- 图片 -->
+                {% if msg.image_url %}
+                <div class="post-images grid-1">
+                    <img src="{{ msg.image_url }}" alt="图片" onclick="viewImage(this.src)">
+                </div>
+                {% endif %}
+
+                <!-- 操作栏 -->
+                <div class="post-actions">
+                    <button class="{% if msg.liked %}liked{% endif %}" onclick="toggleLike({{ msg.id }})">
+                        <span class="heart">{% if msg.liked %}❤️{% else %}🤍{% endif %}</span>
+                        <span class="like-count">{{ msg.likes_count or 0 }}</span>
+                    </button>
+                    <a href="/post/{{ msg.id }}">
+                        💬 <span class="reply-count-{{ msg.id }}">{{ msg.replies_count }}</span>
+                    </a>
+                    {% if admin or (email and email == msg.user_email) %}
+                    <button class="btn-del" onclick="deletePost({{ msg.id }})">🗑️</button>
+                    {% endif %}
+                </div>
+
+                <!-- 回复入口（点击跳详情页看全部+回复） -->
+                <div class="reply-entry">
+                    <a href="/post/{{ msg.id }}" class="reply-link">
+                        💬 {{ msg.replies_count }}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <p>还没有内容，快来发布第一条吧！</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ===== 底部导航 ===== -->
+    <div class="bottom-nav">
+        <a href="/?category={{ current_category }}" class="active">
+            <span class="nav-icon">🏠</span>
+            <span>首页</span>
+        </a>
+        <button class="publish-btn" onclick="openPublish()">＋</button>
+        <a href="{% if email %}/{% else %}/login{% endif %}">
+            <span class="nav-icon">👤</span>
+            <span>{% if email %}{{ email.split('@')[0][:6] }}{% else %}我的{% endif %}</span>
+        </a>
+    </div>
+
+    <!-- ===== 发布弹窗 ===== -->
+    <div class="modal-overlay" id="publish-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 发布内容</h3>
+                <button class="modal-close" onclick="closePublish()">✕</button>
+            </div>
+            <form id="publish-form" action="/submit" method="POST" enctype="application/x-www-form-urlencoded">
+                <!-- 分类选择 -->
+                <div class="category-select">
+                    <input type="radio" name="category" value="message" id="cat-msg" checked>
+                    <label for="cat-msg">📋 留言板</label>
+                    <input type="radio" name="category" value="daily" id="cat-daily">
+                    <label for="cat-daily">📸 日常投稿</label>
+                    <input type="radio" name="category" value="used" id="cat-used">
+                    <label for="cat-used">🏷️ 二手闲置</label>
+                </div>
+
+                <!-- 工具栏 -->
+                <div class="publish-toolbar">
+                    <button type="button" onclick="togglePublishEmoji()">😊</button>
+                    <button type="button" onclick="document.getElementById('publish-img-input').click()">🖼️</button>
                 </div>
 
                 <!-- 表情面板 -->
-                <div class="emoji-panel" id="emoji-panel-main">
-                    <div class="emoji-category">😊 笑脸</div>
-                    <div class="emoji-grid">
-                        <button onclick="insertEmoji('main','😀')">😀</button>
-                        <button onclick="insertEmoji('main','😁')">😁</button>
-                        <button onclick="insertEmoji('main','😂')">😂</button>
-                        <button onclick="insertEmoji('main','🤣')">🤣</button>
-                        <button onclick="insertEmoji('main','😃')">😃</button>
-                        <button onclick="insertEmoji('main','😄')">😄</button>
-                        <button onclick="insertEmoji('main','😅')">😅</button>
-                        <button onclick="insertEmoji('main','😆')">😆</button>
-                        <button onclick="insertEmoji('main','😉')">😉</button>
-                        <button onclick="insertEmoji('main','😊')">😊</button>
-                        <button onclick="insertEmoji('main','😋')">😋</button>
-                        <button onclick="insertEmoji('main','😎')">😎</button>
-                        <button onclick="insertEmoji('main','😍')">😍</button>
-                        <button onclick="insertEmoji('main','🥰')">🥰</button>
-                        <button onclick="insertEmoji('main','😘')">😘</button>
-                        <button onclick="insertEmoji('main','🤗')">🤗</button>
-                        <button onclick="insertEmoji('main','🤩')">🤩</button>
-                        <button onclick="insertEmoji('main','🤔')">🤔</button>
-                        <button onclick="insertEmoji('main','🤨')">🤨</button>
-                        <button onclick="insertEmoji('main','😐')">😐</button>
-                        <button onclick="insertEmoji('main','😏')">😏</button>
-                        <button onclick="insertEmoji('main','😒')">😒</button>
-                        <button onclick="insertEmoji('main','😬')">😬</button>
-                        <button onclick="insertEmoji('main','😮')">😮</button>
-                        <button onclick="insertEmoji('main','😯')">😯</button>
-                        <button onclick="insertEmoji('main','😲')">😲</button>
-                        <button onclick="insertEmoji('main','😳')">😳</button>
-                        <button onclick="insertEmoji('main','🥺')">🥺</button>
-                        <button onclick="insertEmoji('main','😢')">😢</button>
-                        <button onclick="insertEmoji('main','😭')">😭</button>
-                        <button onclick="insertEmoji('main','😤')">😤</button>
-                        <button onclick="insertEmoji('main','😡')">😡</button>
-                        <button onclick="insertEmoji('main','😈')">😈</button>
-                        <button onclick="insertEmoji('main','👿')">👿</button>
-                        <button onclick="insertEmoji('main','💀')">💀</button>
-                    </div>
-                    <div class="emoji-category">👍 手势</div>
-                    <div class="emoji-grid">
-                        <button onclick="insertEmoji('main','👍')">👍</button>
-                        <button onclick="insertEmoji('main','👎')">👎</button>
-                        <button onclick="insertEmoji('main','👊')">👊</button>
-                        <button onclick="insertEmoji('main','✊')">✊</button>
-                        <button onclick="insertEmoji('main','🤛')">🤛</button>
-                        <button onclick="insertEmoji('main','🤜')">🤜</button>
-                        <button onclick="insertEmoji('main','👏')">👏</button>
-                        <button onclick="insertEmoji('main','🙌')">🙌</button>
-                        <button onclick="insertEmoji('main','🤝')">🤝</button>
-                        <button onclick="insertEmoji('main','🙏')">🙏</button>
-                        <button onclick="insertEmoji('main','💪')">💪</button>
-                        <button onclick="insertEmoji('main','✌️')">✌️</button>
-                        <button onclick="insertEmoji('main','🤞')">🤞</button>
-                        <button onclick="insertEmoji('main','🖕')">🖕</button>
-                        <button onclick="insertEmoji('main','❤️')">❤️</button>
-                        <button onclick="insertEmoji('main','🧡')">🧡</button>
-                        <button onclick="insertEmoji('main','💛')">💛</button>
-                        <button onclick="insertEmoji('main','💚')">💚</button>
-                        <button onclick="insertEmoji('main','💙')">💙</button>
-                        <button onclick="insertEmoji('main','💜')">💜</button>
-                        <button onclick="insertEmoji('main','🖤')">🖤</button>
-                        <button onclick="insertEmoji('main','💕')">💕</button>
-                        <button onclick="insertEmoji('main','💯')">💯</button>
-                        <button onclick="insertEmoji('main','🔥')">🔥</button>
-                        <button onclick="insertEmoji('main','⭐')">⭐</button>
-                        <button onclick="insertEmoji('main','🎉')">🎉</button>
-                        <button onclick="insertEmoji('main','🎊')">🎊</button>
-                    </div>
-                    <div class="emoji-category">🐱 动物</div>
-                    <div class="emoji-grid">
-                        <button onclick="insertEmoji('main','🐶')">🐶</button>
-                        <button onclick="insertEmoji('main','🐱')">🐱</button>
-                        <button onclick="insertEmoji('main','🐭')">🐭</button>
-                        <button onclick="insertEmoji('main','🐹')">🐹</button>
-                        <button onclick="insertEmoji('main','🐰')">🐰</button>
-                        <button onclick="insertEmoji('main','🦊')">🦊</button>
-                        <button onclick="insertEmoji('main','🐻')">🐻</button>
-                        <button onclick="insertEmoji('main','🐼')">🐼</button>
-                        <button onclick="insertEmoji('main','🐨')">🐨</button>
-                        <button onclick="insertEmoji('main','🦁')">🦁</button>
-                        <button onclick="insertEmoji('main','🐮')">🐮</button>
-                        <button onclick="insertEmoji('main','🐷')">🐷</button>
-                        <button onclick="insertEmoji('main','🐸')">🐸</button>
-                        <button onclick="insertEmoji('main','🐵')">🐵</button>
-                        <button onclick="insertEmoji('main','🐔')">🐔</button>
-                        <button onclick="insertEmoji('main','🐧')">🐧</button>
-                        <button onclick="insertEmoji('main','🐦')">🐦</button>
-                        <button onclick="insertEmoji('main','🦄')">🦄</button>
-                        <button onclick="insertEmoji('main','🐴')">🐴</button>
-                        <button onclick="insertEmoji('main','🐍')">🐍</button>
-                        <button onclick="insertEmoji('main','🐢')">🐢</button>
-                        <button onclick="insertEmoji('main','🐙')">🐙</button>
-                        <button onclick="insertEmoji('main','🦋')">🦋</button>
-                        <button onclick="insertEmoji('main','🌸')">🌸</button>
-                        <button onclick="insertEmoji('main','🌺')">🌺</button>
-                    </div>
-                    <div class="emoji-category">🍔 食物</div>
-                    <div class="emoji-grid">
-                        <button onclick="insertEmoji('main','🍎')">🍎</button>
-                        <button onclick="insertEmoji('main','🍊')">🍊</button>
-                        <button onclick="insertEmoji('main','🍋')">🍋</button>
-                        <button onclick="insertEmoji('main','🍌')">🍌</button>
-                        <button onclick="insertEmoji('main','🍉')">🍉</button>
-                        <button onclick="insertEmoji('main','🍇')">🍇</button>
-                        <button onclick="insertEmoji('main','🍓')">🍓</button>
-                        <button onclick="insertEmoji('main','🍑')">🍑</button>
-                        <button onclick="insertEmoji('main','🍒')">🍒</button>
-                        <button onclick="insertEmoji('main','🥝')">🥝</button>
-                        <button onclick="insertEmoji('main','🍅')">🍅</button>
-                        <button onclick="insertEmoji('main','🥑')">🥑</button>
-                        <button onclick="insertEmoji('main','🍔')">🍔</button>
-                        <button onclick="insertEmoji('main','🍟')">🍟</button>
-                        <button onclick="insertEmoji('main','🍕')">🍕</button>
-                        <button onclick="insertEmoji('main','🌭')">🌭</button>
-                        <button onclick="insertEmoji('main','🥪')">🥪</button>
-                        <button onclick="insertEmoji('main','🌮')">🌮</button>
-                        <button onclick="insertEmoji('main','🍦')">🍦</button>
-                        <button onclick="insertEmoji('main','🍰')">🍰</button>
-                        <button onclick="insertEmoji('main','☕')">☕</button>
-                        <button onclick="insertEmoji('main','🍺')">🍺</button>
-                        <button onclick="insertEmoji('main','🥂')">🥂</button>
-                    </div>
-                    <div class="emoji-category">🎯 其他</div>
-                    <div class="emoji-grid">
-                        <button onclick="insertEmoji('main','🎵')">🎵</button>
-                        <button onclick="insertEmoji('main','🎶')">🎶</button>
-                        <button onclick="insertEmoji('main','🎮')">🎮</button>
-                        <button onclick="insertEmoji('main','🎯')">🎯</button>
-                        <button onclick="insertEmoji('main','🎲')">🎲</button>
-                        <button onclick="insertEmoji('main','🏆')">🏆</button>
-                        <button onclick="insertEmoji('main','🥇')">🥇</button>
-                        <button onclick="insertEmoji('main','🚀')">🚀</button>
-                        <button onclick="insertEmoji('main','✈️')">✈️</button>
-                        <button onclick="insertEmoji('main','🌍')">🌍</button>
-                        <button onclick="insertEmoji('main','🌈')">🌈</button>
-                        <button onclick="insertEmoji('main','⚡')">⚡</button>
-                        <button onclick="insertEmoji('main','💡')">💡</button>
-                        <button onclick="insertEmoji('main','📚')">📚</button>
-                        <button onclick="insertEmoji('main','💰')">💰</button>
-                        <button onclick="insertEmoji('main','🔒')">🔒</button>
-                        <button onclick="insertEmoji('main','🔑')">🔑</button>
-                        <button onclick="insertEmoji('main','🗿')">🗿</button>
-                        <button onclick="insertEmoji('main','🎃')">🎃</button>
-                        <button onclick="insertEmoji('main','🎄')">🎄</button>
-                        <button onclick="insertEmoji('main','🎁')">🎁</button>
-                        <button onclick="insertEmoji('main','🎂')">🎂</button>
-                        <button onclick="insertEmoji('main','🎈')">🎈</button>
-                        <button onclick="insertEmoji('main','🎀')">🎀</button>
+                <div class="publish-emoji-panel" id="publish-emoji">
+                    <div>
+                        <button type="button" onclick="insertPublishEmoji('😀')">😀</button>
+                        <button type="button" onclick="insertPublishEmoji('😂')">😂</button>
+                        <button type="button" onclick="insertPublishEmoji('😊')">😊</button>
+                        <button type="button" onclick="insertPublishEmoji('😍')">😍</button>
+                        <button type="button" onclick="insertPublishEmoji('😎')">😎</button>
+                        <button type="button" onclick="insertPublishEmoji('🤔')">🤔</button>
+                        <button type="button" onclick="insertPublishEmoji('👍')">👍</button>
+                        <button type="button" onclick="insertPublishEmoji('❤️')">❤️</button>
+                        <button type="button" onclick="insertPublishEmoji('🔥')">🔥</button>
+                        <button type="button" onclick="insertPublishEmoji('🎉')">🎉</button>
+                        <button type="button" onclick="insertPublishEmoji('💪')">💪</button>
+                        <button type="button" onclick="insertPublishEmoji('🙏')">🙏</button>
+                        <button type="button" onclick="insertPublishEmoji('🐱')">🐱</button>
+                        <button type="button" onclick="insertPublishEmoji('🌸')">🌸</button>
+                        <button type="button" onclick="insertPublishEmoji('🍔')">🍔</button>
+                        <button type="button" onclick="insertPublishEmoji('🚀')">🚀</button>
+                        <button type="button" onclick="insertPublishEmoji('💯')">💯</button>
+                        <button type="button" onclick="insertPublishEmoji('🎯')">🎯</button>
+                        <button type="button" onclick="insertPublishEmoji('😭')">😭</button>
+                        <button type="button" onclick="insertPublishEmoji('🥺')">🥺</button>
+                        <button type="button" onclick="insertPublishEmoji('😤')">😤</button>
+                        <button type="button" onclick="insertPublishEmoji('💀')">💀</button>
+                        <button type="button" onclick="insertPublishEmoji('⭐')">⭐</button>
+                        <button type="button" onclick="insertPublishEmoji('🎂')">🎂</button>
+                        <button type="button" onclick="insertPublishEmoji('🎁')">🎁</button>
+                        <button type="button" onclick="insertPublishEmoji('🌍')">🌍</button>
+                        <button type="button" onclick="insertPublishEmoji('🌈')">🌈</button>
+                        <button type="button" onclick="insertPublishEmoji('⚡')">⚡</button>
+                        <button type="button" onclick="insertPublishEmoji('💡')">💡</button>
+                        <button type="button" onclick="insertPublishEmoji('📚')">📚</button>
+                        <button type="button" onclick="insertPublishEmoji('💰')">💰</button>
+                        <button type="button" onclick="insertPublishEmoji('🔒')">🔒</button>
+                        <button type="button" onclick="insertPublishEmoji('🐶')">🐶</button>
+                        <button type="button" onclick="insertPublishEmoji('🐱')">🐱</button>
+                        <button type="button" onclick="insertPublishEmoji('🐼')">🐼</button>
+                        <button type="button" onclick="insertPublishEmoji('🦊')">🦊</button>
+                        <button type="button" onclick="insertPublishEmoji('🐸')">🐸</button>
+                        <button type="button" onclick="insertPublishEmoji('🐙')">🐙</button>
+                        <button type="button" onclick="insertPublishEmoji('🦄')">🦄</button>
                     </div>
                 </div>
 
-                <!-- 图片上传预览 -->
-                <div class="upload-preview" id="upload-preview-main">
-                    <img id="preview-img-main" src="" alt="预览">
-                    <button type="button" class="remove-btn" onclick="removeImage('main')">✕</button>
+                <!-- 图片预览 -->
+                <div class="publish-preview" id="publish-preview">
+                    <img id="publish-preview-img" src="">
+                    <button type="button" class="remove-btn" onclick="removePublishImage()">✕</button>
                 </div>
-                <div class="upload-status" id="upload-status-main">⏳ 上传中...</div>
-                <div class="upload-error" id="upload-error-main"></div>
-                <input type="hidden" name="image_url" id="image-url-main" value="">
+                <input type="hidden" name="image_url" id="publish-image-url" value="">
+                <input type="file" accept="image/*" id="publish-img-input" style="display:none" onchange="uploadPublishImage(this)">
 
-                <textarea name="content" id="msg-content" placeholder="写点什么..." required></textarea>
-            </div>
-            <input type="hidden" name="reply_to" id="reply_to" value="">
-            <button type="submit" class="btn-submit">发布留言</button>
-        </form>
-        {% else %}
-        <div class="login-tip">
-            <p>💡 <a href="/login">登录</a> 或 <a href="/register">注册</a> 后即可留言</p>
-        </div>
-        {% endif %}
+                <!-- 文字输入 -->
+                <textarea class="publish-textarea" name="content" id="publish-content" placeholder="说点什么..." required></textarea>
 
-        <!-- 留言列表 -->
-        <div class="messages">
-            <h2>💬 全部留言 ({{ messages|length }} 条)</h2>
-
-            {% if messages %}
-                {% set ns = namespace(shown=[]) %}
-                {% for msg in messages %}
-                    {% if msg.reply_to is none and msg.id not in ns.shown %}
-                    {% set ns.shown = ns.shown + [msg.id] %}
-                    <div class="message-card">
-                        <div class="msg-header">
-                            <span class="username">{{ msg.username }}</span>
-                            <span class="time">{{ msg.created_at }}</span>
-                        </div>
-                        <div class="content">{{ msg.content }}</div>
-                        {% if msg.image_url %}
-                        <div class="msg-image">
-                            <img src="{{ msg.image_url }}" alt="留言图片" onclick="viewImage(this.src)">
-                        </div>
-                        {% endif %}
-                        <div class="msg-actions">
-                            <a href="#" onclick="showReply({{ msg.id }}); return false;">💬 回复</a>
-                            {% if admin or (email and email == msg.user_email) %}
-                            <form action="/delete/{{ msg.id }}" method="POST" style="display:inline;">
-                                <button type="submit" class="btn-del" onclick="return confirm('确认删除？')">🗑️ 删除</button>
-                            </form>
-                            {% endif %}
-                        </div>
-
-                        <!-- 回复表单 -->
-                        <div class="reply-form" id="reply-form-{{ msg.id }}">
-                            <form action="/submit" method="POST">
-                                <div class="reply-toolbar">
-                                    <button type="button" onclick="toggleReplyEmoji({{ msg.id }})">😊</button>
-                                    <button type="button" onclick="document.getElementById('reply-img-input-{{ msg.id }}').click()">🖼️</button>
-                                </div>
-                                <div class="reply-emoji-panel" id="reply-emoji-{{ msg.id }}">
-                                    <div style="display:flex;flex-wrap:wrap;gap:2px;">
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😀')">😀</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😂')">😂</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😊')">😊</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😍')">😍</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'😎')">😎</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🤔')">🤔</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'👍')">👍</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'❤️')">❤️</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🔥')">🔥</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🎉')">🎉</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'💪')">💪</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🙏')">🙏</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🐱')">🐱</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🌸')">🌸</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🍔')">🍔</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🚀')">🚀</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'💯')">💯</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'🎯')">🎯</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'⭐')">⭐</button>
-                                        <button type="button" onclick="insertReplyEmoji({{ msg.id }},'💀')">💀</button>
-                                    </div>
-                                </div>
-                                <div class="reply-upload-preview" id="reply-upload-preview-{{ msg.id }}">
-                                    <img id="reply-preview-img-{{ msg.id }}" src="" alt="预览">
-                                    <button type="button" class="remove-btn" onclick="removeReplyImage({{ msg.id }})">✕</button>
-                                </div>
-                                <input type="hidden" name="image_url" id="reply-image-url-{{ msg.id }}" value="">
-                                <input type="file" accept="image/*" id="reply-img-input-{{ msg.id }}"
-                                       style="display:none"
-                                       onchange="uploadReplyImage({{ msg.id }}, this)">
-                                <textarea name="content" placeholder="回复 {{ msg.username }}..." required></textarea>
-                                <input type="hidden" name="reply_to" value="{{ msg.id }}">
-                                <button type="submit" class="btn-reply">回复</button>
-                                <button type="button" class="btn-cancel" onclick="hideReply({{ msg.id }})">取消</button>
-                            </form>
-                        </div>
-
-                        <!-- 显示回复 -->
-                        {% set replies = messages | selectattr("reply_to", "equalto", msg.id) | list %}
-                        {% if replies %}
-                        <div class="replies">
-                            {% for r in replies %}
-                            <div class="reply-card">
-                                <div>
-                                    <span class="username">{{ r.username }}</span>
-                                    <span class="time">{{ r.created_at }}</span>
-                                </div>
-                                <div class="content">{{ r.content }}</div>
-                                {% if r.image_url %}
-                                <div class="reply-image">
-                                    <img src="{{ r.image_url }}" alt="回复图片" onclick="viewImage(this.src)">
-                                </div>
-                                {% endif %}
-                                <div class="msg-actions" style="margin-top:4px;">
-                                    <a href="#" onclick="showReply({{ msg.id }}); return false;">💬 回复</a>
-                                    {% if admin or (email and email == r.user_email) %}
-                                    <form action="/delete/{{ r.id }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="btn-del" onclick="return confirm('确认删除？')">🗑️ 删除</button>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                {% endfor %}
-            {% else %}
-                <div class="empty">还没有留言，快来第一条吧！</div>
-            {% endif %}
+                <!-- 提交 -->
+                <button type="submit" class="publish-btn-submit">发布</button>
+            </form>
         </div>
     </div>
 
-    <!-- 图片查看器 -->
+    <!-- ===== 搜索弹窗（全新设计） ===== -->
+    <div class="search-overlay" id="search-overlay">
+        <div class="search-top">
+            <input type="text" id="search-input-real" placeholder="🔍 搜索帖子..." autofocus oninput="doSearch(this.value)">
+            <span class="cancel-btn" onclick="closeSearch()">取消</span>
+        </div>
+        <div class="search-results" id="search-results">
+            <!-- 默认显示热榜，由 JS 加载 -->
+            <div class="loading-dots">⏳ 加载热榜...</div>
+        </div>
+    </div>
+
+    <!-- ===== 图片查看器 ===== -->
     <div class="image-viewer" id="image-viewer" onclick="closeViewer()">
-        <img id="viewer-img" src="" alt="查看图片">
+        <img id="viewer-img" src="">
     </div>
 
-    <!-- 隐藏的文件输入（主表单用） -->
-    <input type="file" accept="image/*" id="img-input" style="display:none" onchange="uploadImage(this)">
+    <!-- ===== Toast ===== -->
+    <div class="toast" id="toast"></div>
 
     <script>
-    // ===== 表情功能 =====
-    var currentEmojiPanel = null;
-
-    function toggleEmoji(type) {
-        var panel = document.getElementById("emoji-panel-" + type);
-        if (!panel) return;
-        var isShow = panel.classList.toggle("show");
-        var btn = document.getElementById("emoji-toggle");
-        if (btn) btn.classList.toggle("active", isShow);
+    // ===== Toast =====
+    function showToast(msg) {
+        var t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(function(){ t.classList.remove("show"); }, 2000);
     }
 
-    function insertEmoji(type, emoji) {
-        var textarea;
-        if (type === "main") {
-            textarea = document.getElementById("msg-content");
+    // ===== 微信号复制 =====
+    function copyWechat() {
+        var text = "xjx200504091731";
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function() {
+                showToast("✅ 微信号已复制");
+            });
         } else {
-            textarea = document.getElementById("reply-content-" + type);
+            // fallback
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+            showToast("✅ 微信号已复制");
         }
-        if (!textarea) return;
-
-        var start = textarea.selectionStart;
-        var end = textarea.selectionEnd;
-        var text = textarea.value;
-        textarea.value = text.substring(0, start) + emoji + text.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
-        textarea.focus();
     }
 
-    function insertReplyEmoji(id, emoji) {
-        var form = document.getElementById("reply-form-" + id);
-        if (!form) return;
-        var textarea = form.querySelector("textarea[name='content']");
-        if (!textarea) return;
-        var start = textarea.selectionStart;
-        var end = textarea.selectionEnd;
-        var text = textarea.value;
-        textarea.value = text.substring(0, start) + emoji + text.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
-        textarea.focus();
+    // ===== 热榜（首页折叠面板 + 搜索内热榜） =====
+    function toggleHot() {
+        var panel = document.getElementById("hot-panel");
+        var arrow = document.getElementById("hot-arrow");
+        panel.classList.toggle("show");
+        arrow.classList.toggle("open");
+        if (panel.classList.contains("show") && !panel.dataset.loaded) {
+            loadHomeHot();
+        }
     }
 
-    function toggleReplyEmoji(id) {
-        var panel = document.getElementById("reply-emoji-" + id);
-        if (panel) panel.classList.toggle("show");
+    function loadHomeHot() {
+        var panel = document.getElementById("hot-panel");
+        document.getElementById("hot-loading").textContent = "⏳ 加载中...";
+        panel.dataset.loaded = "1";
+        fetchHotPosts(function(posts) {
+            if (posts.length === 0) {
+                panel.innerHTML = '<div class="hot-empty">暂无热榜数据</div>';
+                return;
+            }
+            var html = '';
+            var medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+            for (var i = 0; i < posts.length && i < 10; i++) {
+                var p = posts[i];
+                var rankClass = i < 3 ? 'r' + (i+1) : 'rn';
+                html += '<div class="hot-item" onclick="window.location.href=\'/post/' + p.id + '\'">' +
+                    '<div class="rank ' + rankClass + '">' + medals[i] + '</div>' +
+                    '<div class="hot-title">' + escapeHtml(p.content.substring(0, 40)) + '</div>' +
+                    '<div class="hot-count">❤️ ' + (p.likes_count || 0) + ' 💬 ' + (p.comments_count || 0) + '</div></div>';
+            }
+            panel.innerHTML = html;
+        });
     }
 
-    // ===== 图片上传功能（主表单） =====
-    function uploadImage(input) {
-        var file = input.files[0];
-        if (!file) return;
+    function fetchHotPosts(callback) {
+        fetch("/api/hot")
+            .then(function(r) { return r.json(); })
+            .then(function(data) { callback(data.posts || []); })
+            .catch(function() { callback([]); });
+    }
 
-        // 检查文件大小（5MB）
-        if (file.size > 5 * 1024 * 1024) {
-            showUploadError("main", "图片不能超过 5MB");
-            input.value = "";
+    // ===== 搜索弹窗 =====
+    function openSearch() {
+        document.getElementById("search-overlay").classList.add("show");
+        // 尝试恢复上次搜索状态（从详情页返回时）
+        if (!restoreSearchState()) {
+            document.getElementById("search-results").innerHTML = '<div class="loading-dots">⏳ 加载热榜...</div>';
+            loadSearchHot();
+        }
+        setTimeout(function() {
+            document.getElementById("search-input-real").focus();
+        }, 100);
+    }
+
+    function closeSearch() {
+        document.getElementById("search-overlay").classList.remove("show");
+        document.getElementById("search-input-real").value = "";
+    }
+
+    function loadSearchHot() {
+        var results = document.getElementById("search-results");
+        results.innerHTML = '<div class="loading-dots">⏳ 加载热榜...</div>';
+        fetchHotPosts(function(posts) {
+            if (posts.length === 0) {
+                results.innerHTML = '<div class="search-empty"><div class="big-icon">🔥</div><p>暂无热榜数据</p></div>';
+                return;
+            }
+            var html = '<div class="hot-section-title"><span class="fire">🔥</span> 今日热榜 TOP10</div>';
+            var medals = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+            var medalColors = ['#f9ca24','#a0a0a0','#e17055','#bbb','#bbb','#bbb','#bbb','#bbb','#bbb','#bbb'];
+            for (var i = 0; i < posts.length && i < 10; i++) {
+                var p = posts[i];
+                var rankClass = i < 3 ? 'r' + (i+1) : 'rn';
+                var catName = {'message':'留言板','daily':'日常投稿','used':'二手闲置'}[p.category] || '留言板';
+                html += '<div class="hot-card" onclick="saveSearchState();window.location.href=\'/post/' + p.id + '?from=search\'">' +
+                    '<div class="rank-badge ' + rankClass + '" style="' + (i < 3 ? '' : 'background:' + medalColors[i]) + '">' +
+                    medals[i] + '</div>' +
+                    '<div class="hot-info"><div class="hot-text">' + escapeHtml(p.content.substring(0, 50)) + '</div>' +
+                    '<div class="hot-meta">' + escapeHtml(p.username) + ' · ' + catName + '</div></div>' +
+                    '<div class="hot-stats"><div class="stat-num likes">❤️ ' + (p.likes_count || 0) + '</div>' +
+                    '<div class="stat-label">点赞</div></div>' +
+                    '<div class="hot-stats"><div class="stat-num comments-s">💬 ' + (p.comments_count || 0) + '</div>' +
+                    '<div class="stat-label">评论</div></div></div>';
+            }
+            results.innerHTML = html;
+        });
+    }
+
+    // 保存/恢复搜索状态，用于从详情页返回时保持位置
+    function saveSearchState(query, html) {
+        try {
+            var resultsEl = document.getElementById("search-results");
+            sessionStorage.setItem("search_query", query || "");
+            sessionStorage.setItem("search_html", html || resultsEl.innerHTML);
+            sessionStorage.setItem("search_scroll", resultsEl.scrollTop || 0);
+        } catch(e) {}
+    }
+
+    function restoreSearchState() {
+        try {
+            var q = sessionStorage.getItem("search_query") || "";
+            var html = sessionStorage.getItem("search_html") || "";
+            var scroll = parseInt(sessionStorage.getItem("search_scroll")) || 0;
+            if (html) {
+                document.getElementById("search-results").innerHTML = html;
+                document.getElementById("search-input-real").value = q;
+                setTimeout(function() {
+                    document.getElementById("search-results").scrollTop = scroll;
+                }, 50);
+                return true;
+            }
+        } catch(e) {}
+        return false;
+    }
+
+    function clearSearchState() {
+        try {
+            sessionStorage.removeItem("search_query");
+            sessionStorage.removeItem("search_html");
+            sessionStorage.removeItem("search_scroll");
+        } catch(e) {}
+    }
+
+    // 搜索结果点击前保存状态
+    function searchGoTo(url) {
+        saveSearchState();
+        window.location.href = url;
+    }
+
+    var searchTimer = null;
+    function doSearch(query) {
+        if (searchTimer) clearTimeout(searchTimer);
+        if (!query.trim()) {
+            loadSearchHot();
             return;
         }
+        searchTimer = setTimeout(function() {
+            var results = document.getElementById("search-results");
+            results.innerHTML = '<div class="loading-dots">⏳ 搜索中...</div>';
 
-        var status = document.getElementById("upload-status-main");
-        var error = document.getElementById("upload-error-main");
-        status.classList.add("show");
-        status.textContent = "⏳ 上传中...";
-        error.classList.remove("show");
+            fetch("/api/search?q=" + encodeURIComponent(query))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var msgs = data.messages || [];
+                    if (msgs.length === 0) {
+                        results.innerHTML = '<div class="search-empty"><div class="big-icon">🔍</div><p>未找到相关帖子</p></div>';
+                        return;
+                    }
+                    var sq = encodeURIComponent(query);
+                    var html = '';
+                    for (var i = 0; i < msgs.length; i++) {
+                        var m = msgs[i];
+                        var likes = m.likes_count || 0;
+                        var comments = m.comments_count || 0;
+                        var likedClass = m.liked ? ' liked' : '';
+                        var heartIcon = m.liked ? '❤️' : '🤍';
+                    html += '<div class="search-post-card" onclick="saveSearchState();window.location.href=\'/post/' + m.id + '?from=search&q=' + sq + '\'">' +
+                            '<div class="sp-header">' +
+                            '<div class="sp-avatar">' + escapeHtml((m.username || '?').charAt(0)) + '</div>' +
+                            '<span class="sp-name">' + escapeHtml(m.username) + '</span>' +
+                            '<span class="sp-time">' + (m.created_at || '') + '</span></div>' +
+                            '<div class="sp-content">' + escapeHtml(m.content) + '</div>' +
+                            '<div class="sp-actions">' +
+                            '<button class="sp-like' + likedClass + '" onclick="event.stopPropagation();searchLike(' + m.id + ', this)">' +
+                            '<span>' + heartIcon + '</span> <span>' + likes + '</span></button>' +
+                            '<a href="/post/' + m.id + '" onclick="event.stopPropagation()">💬 ' + comments + '</a></div></div>';
+                    }
+                    results.innerHTML = html;
+                    saveSearchState(query, html);
+                })
+                .catch(function() {
+                    results.innerHTML = '<div class="search-empty">搜索失败，请重试</div>';
+                });
+        }, 300);
+    }
+
+    function searchLike(msgId, btn) {
+        fetch("/api/like/" + msgId, { method: "POST" })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) return;
+            var spans = btn.querySelectorAll("span");
+            if (data.liked) {
+                btn.classList.add("liked");
+                spans[0].textContent = "❤️";
+            } else {
+                btn.classList.remove("liked");
+                spans[0].textContent = "🤍";
+            }
+            spans[1].textContent = data.count;
+        })
+        .catch(function() {});
+    }
+
+    function escapeHtml(text) {
+        var d = document.createElement("div");
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    // ===== 页面加载后检查 URL =====
+    window.addEventListener('load', function() {
+        // 从搜索/详情页返回，自动打开搜索并恢复状态
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('from') === 'search') {
+            setTimeout(function() {
+                openSearch();  // 内部会尝试 restoreSearchState()
+            }, 200);
+        }
+        // URL hash 滚动到帖子
+        if (window.location.hash && window.location.hash.startsWith('#post-')) {
+            var id = window.location.hash.replace('#post-', '');
+            var el = document.getElementById('post-' + id);
+            if (el) {
+                setTimeout(function() {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.style.boxShadow = '0 0 0 3px #667eea';
+                    setTimeout(function() { el.style.boxShadow = ''; }, 2000);
+                }, 300);
+            }
+        }
+    });
+
+    // ===== 发布弹窗 =====
+    function openPublish() {
+        document.getElementById("publish-modal").classList.add("show");
+        document.body.style.overflow = "hidden";
+    }
+    function closePublish() {
+        document.getElementById("publish-modal").classList.remove("show");
+        document.body.style.overflow = "";
+    }
+
+    // 发布表情
+    function togglePublishEmoji() {
+        var p = document.getElementById("publish-emoji");
+        p.classList.toggle("show");
+    }
+    function insertPublishEmoji(emoji) {
+        var ta = document.getElementById("publish-content");
+        var start = ta.selectionStart;
+        var end = ta.selectionEnd;
+        ta.value = ta.value.substring(0, start) + emoji + ta.value.substring(end);
+        ta.selectionStart = ta.selectionEnd = start + emoji.length;
+        ta.focus();
+    }
+
+    // 发布图片上传
+    function uploadPublishImage(input) {
+        var file = input.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { showToast("❌ 图片不能超过 5MB"); input.value = ""; return; }
 
         var formData = new FormData();
         formData.append("file", file);
 
-        fetch("/api/upload", {
-            method: "POST",
-            body: formData
-        })
+        fetch("/api/upload", { method: "POST", body: formData })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            status.classList.remove("show");
-            if (data.error) {
-                showUploadError("main", data.error);
-                return;
-            }
-            document.getElementById("image-url-main").value = data.url;
-            var preview = document.getElementById("upload-preview-main");
-            var img = document.getElementById("preview-img-main");
-            img.src = data.url;
+            if (data.error) { showToast("❌ " + data.error); return; }
+            document.getElementById("publish-image-url").value = data.url;
+            var preview = document.getElementById("publish-preview");
+            document.getElementById("publish-preview-img").src = data.url;
             preview.classList.add("show");
         })
-        .catch(function(err) {
-            status.classList.remove("show");
-            showUploadError("main", "上传失败：" + err.message);
-        });
-
+        .catch(function(err) { showToast("❌ 上传失败"); });
         input.value = "";
     }
 
-    function removeImage(type) {
-        document.getElementById("image-url-" + type).value = "";
-        document.getElementById("upload-preview-" + type).classList.remove("show");
-        document.getElementById("preview-img-" + type).src = "";
+    function removePublishImage() {
+        document.getElementById("publish-image-url").value = "";
+        document.getElementById("publish-preview").classList.remove("show");
+        document.getElementById("publish-preview-img").src = "";
     }
 
-    function showUploadError(type, msg) {
-        var el = document.getElementById("upload-error-" + type);
-        if (el) {
-            el.textContent = "❌ " + msg;
-            el.classList.add("show");
-            setTimeout(function() { el.classList.remove("show"); }, 4000);
-        }
-    }
-
-    // ===== 图片上传功能（回复表单） =====
-    function uploadReplyImage(id, input) {
-        var file = input.files[0];
-        if (!file) return;
-
-        if (file.size > 5 * 1024 * 1024) {
-            alert("图片不能超过 5MB");
-            input.value = "";
-            return;
-        }
-
-        var formData = new FormData();
-        formData.append("file", file);
-
-        fetch("/api/upload", {
-            method: "POST",
-            body: formData
-        })
+    // ===== 点赞 =====
+    function toggleLike(msgId) {
+        fetch("/api/like/" + msgId, { method: "POST" })
         .then(function(r) { return r.json(); })
         .then(function(data) {
-            if (data.error) {
-                alert("上传失败：" + data.error);
-                return;
+            if (data.error) { showToast("❌ " + data.error); return; }
+            var card = document.getElementById("post-" + msgId);
+            if (!card) return;
+            var btn = card.querySelector(".post-actions button:first-child");
+            var countSpan = btn.querySelector(".like-count");
+            var heartSpan = btn.querySelector(".heart");
+
+            if (data.liked) {
+                btn.classList.add("liked");
+                heartSpan.textContent = "❤️";
+            } else {
+                btn.classList.remove("liked");
+                heartSpan.textContent = "🤍";
             }
-            document.getElementById("reply-image-url-" + id).value = data.url;
-            var preview = document.getElementById("reply-upload-preview-" + id);
-            var img = document.getElementById("reply-preview-img-" + id);
-            img.src = data.url;
-            preview.classList.add("show");
+            countSpan.textContent = data.count;
         })
-        .catch(function(err) {
-            alert("上传失败：" + err.message);
-        });
-
-        input.value = "";
+        .catch(function() { showToast("❌ 操作失败"); });
     }
 
-    function removeReplyImage(id) {
-        document.getElementById("reply-image-url-" + id).value = "";
-        document.getElementById("reply-upload-preview-" + id).classList.remove("show");
-        document.getElementById("reply-preview-img-" + id).src = "";
+    // ===== 删除 =====
+    function deletePost(msgId) {
+        if (!confirm("确认删除这条帖子？")) return;
+        var form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/delete/" + msgId;
+        document.body.appendChild(form);
+        form.submit();
     }
+
+    // ===== 回复已移至详情页 /post/{id} =====
 
     // ===== 图片查看器 =====
     function viewImage(src) {
         var viewer = document.getElementById("image-viewer");
-        var img = document.getElementById("viewer-img");
-        img.src = src;
+        document.getElementById("viewer-img").src = src;
         viewer.classList.add("show");
     }
-
     function closeViewer() {
         document.getElementById("image-viewer").classList.remove("show");
     }
-
-    // ESC 键关闭查看器
     document.addEventListener("keydown", function(e) {
         if (e.key === "Escape") closeViewer();
     });
 
-    // ===== 原有功能 =====
-    function showReply(id) {
-        document.getElementById("reply-form-" + id).style.display = "block";
-    }
-    function hideReply(id) {
-        document.getElementById("reply-form-" + id).style.display = "none";
-        // 也关闭回复的表情面板
-        var ep = document.getElementById("reply-emoji-" + id);
-        if (ep) ep.classList.remove("show");
-    }
+    // ===== 点击弹窗外关闭 =====
+    document.getElementById("publish-modal").addEventListener("click", function(e) {
+        if (e.target === this) closePublish();
+    });
     </script>
 </body>
 </html>

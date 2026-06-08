@@ -71,7 +71,7 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # 留言表（带 image_url 字段）
+    # 留言表（微墙版：带分类、点赞数、评论数）
     cursor.execute("""
         create table if not exists messages (
             id serial primary key,
@@ -80,11 +80,14 @@ def init_db():
             reply_to integer default null,
             user_email text default null,
             image_url text default null,
+            category text default 'message',
+            likes_count integer default 0,
+            comments_count integer default 0,
             created_at timestamp default current_timestamp
         )
     """)
+    # category = 分类（message=留言板, daily=日常投稿, used=二手闲置）
     # reply_to = 回复给（rui pu lai tu 瑞普来突）
-    # reply_to = 3 表示回复 id=3 的留言
 
     # 用户表（带 role 字段）
     cursor.execute("""
@@ -99,6 +102,30 @@ def init_db():
     # role = 角色（rou ou 肉欧）
     # 'user' = 普通用户
     # 'admin' = 管理员
+
+    # 点赞表
+    cursor.execute("""
+        create table if not exists likes (
+            id serial primary key,
+            user_email text not null,
+            message_id integer not null references messages(id),
+            created_at timestamp default current_timestamp,
+            unique(user_email, message_id)
+        )
+    """)
+    # likes = 点赞（lai ke si 莱克斯）
+
+    # 收藏表
+    cursor.execute("""
+        create table if not exists favorites (
+            id serial primary key,
+            user_email text not null,
+            message_id integer not null references messages(id),
+            created_at timestamp default current_timestamp,
+            unique(user_email, message_id)
+        )
+    """)
+    # favorites = 收藏（fei wo rui ci 飞沃瑞慈）
 
     # AI 对话历史表
     cursor.execute("""
@@ -128,14 +155,20 @@ def init_db():
     # image_api_key = 图片生成 API 密钥
 
     # 兼容旧数据库（缺少的列，PostgreSQL 版）
-    for col in ["image_api_key", "image_url"]:
-        table = "user_config" if col == "image_api_key" else "messages"
-        cursor.execute("""
-            select column_name from information_schema.columns
-            where table_name=%s and column_name=%s
-        """, [table, col])
-        if not cursor.fetchone():
-            cursor.execute(f"alter table {table} add column {col} text default null")
+    compat_checks = {
+        "user_config": ["image_api_key"],
+        "messages": ["image_url", "category", "likes_count", "comments_count"],
+        "users": ["nickname", "avatar_url", "phone"]
+    }
+    for table, columns in compat_checks.items():
+        for col in columns:
+            cursor.execute(
+                "select column_name from information_schema.columns where table_name=%s and column_name=%s",
+                [table, col]
+            )
+            if not cursor.fetchone():
+                default = "integer default 0" if col in ["likes_count", "comments_count"] else "text default null"
+                cursor.execute(f"alter table {table} add column {col} {default}")
 
     conn.commit()
 
@@ -155,29 +188,154 @@ def init_db():
     conn.close()
 
 
-def get_messages():
-    """读取所有留言"""
+def get_messages(category=None, page=1, per_page=20, email=None):
+    """读取留言，支持分类过滤和分页（只返回顶级帖子，不含回复）"""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cursor.execute("select * from messages order by created_at desc")
+    offset = (page - 1) * per_page
+    if category and category != "latest":
+        cursor.execute(
+            "select * from messages where reply_to is null and category = %s order by created_at desc limit %s offset %s",
+            [category, per_page, offset]
+        )
+    else:
+        cursor.execute(
+            "select * from messages where reply_to is null order by created_at desc limit %s offset %s",
+            [per_page, offset]
+        )
     messages = cursor.fetchall()
+    for msg in messages:
+        # 首页不加载回复列表（点击计数跳转到详情页查看）
+        msg["replies_list"] = []
+        msg["replies_count"] = msg.get("comments_count") or 0
+        # 是否已点赞
+        if email:
+            cursor.execute(
+                "select id from likes where user_email = %s and message_id = %s",
+                [email, msg["id"]]
+            )
+            msg["liked"] = cursor.fetchone() is not None
+        else:
+            msg["liked"] = False
+
+        # 兼容旧数据没有分类
+        if not msg.get("category"):
+            msg["category"] = "message"
+        if not msg.get("likes_count"):
+            msg["likes_count"] = 0
+        if not msg.get("comments_count"):
+            msg["comments_count"] = 0
+
     conn.close()
     return messages
 
 
-def save_message(username, content, reply_to=None, user_email=None, image_url=None):
-    """保存留言"""
+def toggle_like(message_id, user_email):
+    """切换点赞状态，返回新的点赞数和状态"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("select id from likes where user_email = %s and message_id = %s", [user_email, message_id])
+    existing = cursor.fetchone()
+    if existing:
+        cursor.execute("delete from likes where id = %s", [existing[0]])
+        cursor.execute("update messages set likes_count = greatest(0, likes_count - 1) where id = %s", [message_id])
+        liked = False
+    else:
+        cursor.execute("insert into likes (user_email, message_id) values (%s, %s)", [user_email, message_id])
+        cursor.execute("update messages set likes_count = likes_count + 1 where id = %s", [message_id])
+        liked = True
+    cursor.execute("select likes_count from messages where id = %s", [message_id])
+    count = cursor.fetchone()[0]
+    conn.commit()
+    conn.close()
+    return {"liked": liked, "count": count}
+
+
+def search_messages(query, page=1, per_page=20):
+    """搜索帖子（ILIKE 模糊匹配标题和内容）"""
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    offset = (page - 1) * per_page
+    pattern = f"%{query}%"
+    cursor.execute(
+        "select * from messages where reply_to is null and content ilike %s order by created_at desc limit %s offset %s",
+        [pattern, per_page, offset]
+    )
+    messages = cursor.fetchall()
+    for msg in messages:
+        cursor.execute("select * from messages where reply_to = %s order by created_at asc", [msg["id"]])
+        msg["replies_list"] = cursor.fetchall()
+    conn.close()
+    return messages
+
+
+def get_hot_posts(email=None, limit=10):
+    """获取热榜前 N 条（按点赞+评论数排序）"""
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute(
+        "select * from messages where reply_to is null order by (likes_count + comments_count) desc, created_at desc limit %s",
+        [limit]
+    )
+    posts = cursor.fetchall()
+    for p in posts:
+        p["replies_count"] = p.get("comments_count") or 0
+        if not p.get("category"):
+            p["category"] = "message"
+        if not p.get("likes_count"):
+            p["likes_count"] = 0
+        if email:
+            cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, p["id"]])
+            p["liked"] = cursor.fetchone() is not None
+        else:
+            p["liked"] = False
+    conn.close()
+    return posts
+
+
+def get_post_detail(post_id, email=None):
+    """获取帖子详情 + 全部评论"""
+    conn = get_db()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute("select * from messages where id = %s", [post_id])
+    post = cursor.fetchone()
+    if not post:
+        conn.close()
+        return None
+    # 全部评论（正序）
+    cursor.execute("select * from messages where reply_to = %s order by created_at asc", [post_id])
+    post["replies_list"] = cursor.fetchall()
+    post["replies_count"] = post.get("comments_count") or len(post["replies_list"])
+    # 点赞状态
+    if email:
+        cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, post_id])
+        post["liked"] = cursor.fetchone() is not None
+    else:
+        post["liked"] = False
+    conn.close()
+    return post
+
+
+def save_message(username, content, reply_to=None, user_email=None, image_url=None, category='message'):
+    """保存留言（支持分类，自动更新父帖评论数，返回新ID）"""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "insert into messages (username, content, reply_to, user_email, image_url) values (%s, %s, %s, %s, %s)",
-        (username, content, reply_to, user_email, image_url)
+        "insert into messages (username, content, reply_to, user_email, image_url, category) values (%s, %s, %s, %s, %s, %s)",
+        (username, content, reply_to, user_email, image_url, category)
     )
+    if reply_to:
+        cursor.execute("update messages set comments_count = comments_count + 1 where id = %s", [reply_to])
     conn.commit()
+    # 获取新插入的 ID
+    cursor.execute("select lastval()")
+    new_id = cursor.fetchone()[0]
     conn.close()
+    return new_id
 
 
 def delete_message(msg_id, user_email):
+    """删除留言（只有管理员或留言者本人可删）"""
     """删除留言（只有管理员或留言者本人可删）"""
     conn = get_db()
     cursor = conn.cursor()
@@ -191,6 +349,9 @@ def delete_message(msg_id, user_email):
         user = cursor.fetchone()
         is_admin = user and user[0] == "admin"
         if is_admin or msg_email == user_email:
+            # 删除关联的点赞和收藏
+            cursor.execute("delete from likes where message_id = %s", [msg_id])
+            cursor.execute("delete from favorites where message_id = %s", [msg_id])
             cursor.execute("delete from messages where id = %s", [msg_id])
             conn.commit()
             conn.close()
@@ -336,13 +497,14 @@ def clear_chat_history(email):
 
 @app.route("/")
 def home():
-    """首页 - 留言板"""
-    messages = get_messages()
+    """首页 - 微墙（支持分类过滤）"""
+    category = request.args.get("category", "latest")
+    page = int(request.args.get("page", 1))
     email = session.get("email")
     user = get_user_by_email(email) if email else None
     admin = is_admin(email) if email else False
 
-    # 生成当前网址的二维码
+    messages = get_messages(category=category, page=page, email=email)
     qr_data = generate_qr("https://devoted-adventure-production-b9ad.up.railway.app")
 
     return render_template("index.html",
@@ -350,7 +512,102 @@ def home():
                          email=email,
                          user=user,
                          admin=admin,
-                         qr_data=qr_data)
+                         qr_data=qr_data,
+                         current_category=category,
+                         current_page=page)
+
+
+# ========== 点赞 / 搜索 API ==========
+
+
+@app.route("/api/like/<int:msg_id>", methods=["POST"])
+def api_like(msg_id):
+    """切换点赞状态（AJAX）"""
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "未登录"}), 401
+    result = toggle_like(msg_id, email)
+    return jsonify(result)
+
+
+@app.route("/api/search")
+def api_search():
+    """搜索帖子（AJAX）"""
+    email = session.get("email")
+    q = request.args.get("q", "").strip()
+    page = int(request.args.get("page", 1))
+    if not q:
+        return jsonify({"messages": []})
+    messages = search_messages(q, page)
+    # 标记点赞状态
+    for msg in messages:
+        if email:
+            cursor = None
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, msg["id"]])
+            msg["liked"] = cursor.fetchone() is not None
+            conn.close()
+        else:
+            msg["liked"] = False
+        msg["replies_count"] = msg.get("comments_count") or 0
+    return jsonify({"messages": messages})
+
+
+@app.route("/api/hot")
+def api_hot():
+    """今日热榜 TOP10（AJAX）"""
+    email = session.get("email")
+    posts = get_hot_posts(email, 10)
+    return jsonify({"posts": posts})
+
+
+@app.route("/api/reply", methods=["POST"])
+def api_reply():
+    """AJAX 回复（不刷新页面）"""
+    email = session.get("email")
+    if not email:
+        return jsonify({"error": "未登录"}), 401
+
+    data = request.get_json()
+    content = data.get("content", "").strip()
+    reply_to = data.get("reply_to")
+
+    if not content or not reply_to:
+        return jsonify({"error": "参数不完整"}), 400
+
+    display_name = email.split("@")[0]
+    new_id = save_message(
+        username=display_name,
+        content=content,
+        reply_to=int(reply_to),
+        user_email=email,
+        category="message"
+    )
+
+    return jsonify({
+        "id": new_id,
+        "username": display_name,
+        "content": content,
+        "created_at": get_now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+
+@app.route("/post/<int:msg_id>")
+def post_detail(msg_id):
+    """帖子详情 + 全部评论"""
+    email = session.get("email")
+    user = get_user_by_email(email) if email else None
+    admin = is_admin(email) if email else False
+    post = get_post_detail(msg_id, email)
+    if not post:
+        return "帖子不存在", 404
+
+    return render_template("post_detail.html",
+                         post=post,
+                         email=email,
+                         user=user,
+                         admin=admin)
 
 
 @app.route("/submit", methods=["POST"])
@@ -362,9 +619,9 @@ def submit():
 
     content = request.form.get("content")
     image_url = request.form.get("image_url")
+    category = request.form.get("category", "message")
     reply_to = request.form.get("reply_to")
     # reply_to 可能是空字符串，转成 None
-
 
     if content:
         display_name = email.split("@")[0]
@@ -373,10 +630,11 @@ def submit():
             content=content,
             reply_to=int(reply_to) if reply_to and reply_to.isdigit() else None,
             user_email=email,
-            image_url=image_url or None
+            image_url=image_url or None,
+            category=category or "message"
         )
 
-    return redirect("/")
+    return redirect(f"/?category={category or 'latest'}")
 
 
 @app.route("/delete/<int:msg_id>", methods=["POST"])
