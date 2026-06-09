@@ -115,8 +115,8 @@
             <div class="hot-info">
                 <div class="hot-text">{{ p.content }}</div>
                 {% if p.image_url %}
-                <div style="margin-top:6px;">
-                    <img src="{{ p.image_url }}" style="width:100%;max-height:120px;border-radius:8px;object-fit:cover;pointer-events:none;">
+                <div style="margin-top:8px;">
+                    <img src="{{ p.image_url }}" style="width:100%;border-radius:8px;pointer-events:none;max-height:300px;object-fit:contain;background:#f5f5f5;">
                 </div>
                 {% endif %}
                 <div class="hot-meta">
