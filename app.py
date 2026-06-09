@@ -15,6 +15,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from PIL import Image
+import oss2
 import requests
 import json
 import io
@@ -61,6 +62,17 @@ def cached(timeout=30):
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp", "bmp"}
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
+
+# 阿里云 OSS 配置（从环境变量读取）
+OSS_ACCESS_KEY_ID = os.environ.get("OSS_ACCESS_KEY_ID", "")
+OSS_ACCESS_KEY_SECRET = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
+OSS_BUCKET_NAME = os.environ.get("OSS_BUCKET_NAME", "weiqiang-images")
+OSS_ENDPOINT = os.environ.get("OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
+if OSS_ACCESS_KEY_ID and OSS_ACCESS_KEY_SECRET:
+    auth = oss2.Auth(OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET)
+    oss_bucket = oss2.Bucket(auth, f"https://{OSS_ENDPOINT}", OSS_BUCKET_NAME)
+else:
+    oss_bucket = None
 
 app = Flask(__name__)
 app.secret_key = "liu-yan-ban-2024-xue-xi-xiang-mu-666"
@@ -1432,31 +1444,33 @@ def api_upload():
         return jsonify({"error": "不支持的图片格式，请上传 PNG/JPG/GIF/WebP"}), 400
 
     try:
-        # 确保上传目录存在
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
         # 生成唯一文件名
-        ext = file.filename.rsplit(".", 1)[1].lower()
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.jpg"
-        filepath = os.path.join(UPLOAD_FOLDER, safe_name)
 
         # 压缩图片：最大 1200px，JPEG 质量 80%
         img = Image.open(file)
-        # 转 RGB（处理 PNG 透明背景）
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
-        # 限制最大尺寸
         max_size = 1200
         if img.width > max_size or img.height > max_size:
             ratio = max_size / max(img.width, img.height)
             new_size = (int(img.width * ratio), int(img.height * ratio))
             img = img.resize(new_size, Image.LANCZOS)
-        # 保存压缩
-        img.save(filepath, "JPEG", quality=80, optimize=True)
 
-        # 返回可访问的 URL
-        url = f"/static/uploads/{safe_name}"
+        # 上传到 OSS（如果配置了）或本地
+        if oss_bucket:
+            buffer = io.BytesIO()
+            img.save(buffer, "JPEG", quality=80, optimize=True)
+            buffer.seek(0)
+            oss_bucket.put_object(safe_name, buffer)
+            url = f"https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}/{safe_name}"
+        else:
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            filepath = os.path.join(UPLOAD_FOLDER, safe_name)
+            img.save(filepath, "JPEG", quality=80, optimize=True)
+            url = f"/static/uploads/{safe_name}"
+
         return jsonify({"url": url, "filename": safe_name})
 
     except Exception as e:
