@@ -114,6 +114,11 @@
             </div>
             <div class="hot-info">
                 <div class="hot-text">{{ p.content }}</div>
+                {% if p.image_url %}
+                <div style="margin-top:6px;">
+                    <img src="{{ p.image_url }}" style="width:100%;max-height:120px;border-radius:8px;object-fit:cover;pointer-events:none;">
+                </div>
+                {% endif %}
                 <div class="hot-meta">
                     <span>{{ p.username }}</span>
                     <span class="cat-tag cat-tag-{{ p.category }}">
