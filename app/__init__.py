@@ -16,3 +16,10 @@ from . import utils
 from . import cache
 from . import models
 from . import routes
+from . import search
+
+# 启动时初始化 ES 索引（没有 ES 也不影响）
+try:
+    search.init_search()
+except Exception:
+    pass

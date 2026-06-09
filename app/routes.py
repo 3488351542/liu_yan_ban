@@ -12,6 +12,7 @@ import qrcode
 from . import app
 from .utils import get_db, get_now, allowed_file, ALLOWED_EXTENSIONS, UPLOAD_FOLDER
 from .tasks import process_image, celery_app
+from .search import search_posts, init_search, sync_post, delete_post_from_search
 from .models import (
     ADMIN_EMAIL, get_messages, get_hot_posts, get_post_detail,
     toggle_like, search_messages, save_message, delete_message,
@@ -68,7 +69,10 @@ def api_search():
     page = int(request.args.get("page", 1))
     if not q:
         return jsonify({"messages": []})
-    messages = search_messages(q, page)
+    # 优先查 ES，ES 没配则降级 ILIKE
+    messages = search_posts(q, page)
+    if messages is None:
+        messages = search_messages(q, page)
     for msg in messages:
         if email:
             conn = get_db(read_only=True)
@@ -191,9 +195,15 @@ def submit():
     reply_to = request.form.get("reply_to")
     if content or image_url:
         display_name = email.split("@")[0]
-        save_message(username=display_name, content=content or "分享了一张图片",
+        new_id = save_message(username=display_name, content=content or "分享了一张图片",
                      reply_to=int(reply_to) if reply_to and reply_to.isdigit() else None,
                      user_email=email, image_url=image_url or None, category=category or "message")
+        # 同步到 ES
+        try:
+            from .models import _get_post_raw
+            p = _get_post_raw(new_id)
+            if p: sync_post(p)
+        except: pass
     return redirect(f"/?category={category or 'latest'}")
 
 
@@ -203,6 +213,7 @@ def delete(msg_id):
     if not email:
         return redirect("/login")
     delete_message(msg_id, email)
+    delete_post_from_search(msg_id)
     return redirect("/")
 
 
