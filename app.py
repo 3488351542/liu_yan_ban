@@ -1471,10 +1471,11 @@ def api_upload():
             img.save(filepath, "JPEG", quality=80, optimize=True)
             url = f"/static/uploads/{safe_name}"
 
-        return jsonify({"url": url, "filename": safe_name})
+        return jsonify({"url": url, "filename": safe_name, "oss": oss_bucket is not None})
 
     except Exception as e:
-        return jsonify({"error": f"上传失败：{str(e)}"}), 500
+        import traceback
+        return jsonify({"error": f"上传失败：{str(e)}", "detail": traceback.format_exc()}), 500
 
 
 # =============================================
