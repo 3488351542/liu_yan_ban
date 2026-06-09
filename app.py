@@ -975,11 +975,11 @@ def submit():
     reply_to = request.form.get("reply_to")
     # reply_to 可能是空字符串，转成 None
 
-    if content:
+    if content or image_url:
         display_name = email.split("@")[0]
         save_message(
             username=display_name,
-            content=content,
+            content=content or "分享了一张图片",
             reply_to=int(reply_to) if reply_to and reply_to.isdigit() else None,
             user_email=email,
             image_url=image_url or None,
