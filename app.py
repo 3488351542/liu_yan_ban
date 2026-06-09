@@ -76,6 +76,7 @@ else:
 
 app = Flask(__name__)
 app.secret_key = "liu-yan-ban-2024-xue-xi-xiang-mu-666"
+app.config["SESSION_PERMANENT"] = False
 
 # DeepSeek API 地址
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
