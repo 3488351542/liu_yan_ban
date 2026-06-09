@@ -83,6 +83,24 @@ def search_post_ids(query, page=1, per_page=20):
         return None
 
 
+def sync_all_posts():
+    """批量同步所有帖子到 ES（首次部署后跑一次）"""
+    if not es:
+        return 0
+    from .utils import get_db
+    import psycopg2.extras
+    conn = get_db(read_only=True)
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("select * from messages where reply_to is null order by id")
+    posts = cur.fetchall()
+    conn.close()
+    count = 0
+    for p in posts:
+        sync_post(p)
+        count += 1
+    return count
+
+
 def search_posts(query, page=1, per_page=20):
     """搜帖子完整数据（ES 查 ID → 数据库取全部字段）"""
     ids = search_post_ids(query, page, per_page)

@@ -12,7 +12,7 @@ import qrcode
 from . import app
 from .utils import get_db, get_now, allowed_file, ALLOWED_EXTENSIONS, UPLOAD_FOLDER
 from .tasks import process_image, celery_app
-from .search import search_posts, init_search, sync_post, delete_post_from_search
+from .search import search_posts, init_search, sync_post, delete_post_from_search, sync_all_posts
 from .models import (
     ADMIN_EMAIL, get_messages, get_hot_posts, get_post_detail,
     toggle_like, search_messages, save_message, delete_message,
@@ -424,6 +424,17 @@ def api_image_generate():
         return jsonify(resp.json())
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ===== ES 批量同步（首次部署后跑一次） =====
+@app.route("/api/sync-search")
+def api_sync_search():
+    """把数据库所有帖子同步到 ES"""
+    email = session.get("email")
+    if not email or not is_admin(email):
+        return jsonify({"error": "仅管理员可操作"}), 403
+    count = sync_all_posts()
+    return jsonify({"ok": True, "synced": count, "message": f"已同步 {count} 条帖子到 ES"})
 
 
 # ===== 图片上传 =====
