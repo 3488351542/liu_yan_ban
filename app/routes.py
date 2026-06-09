@@ -11,6 +11,7 @@ import oss2
 import qrcode
 from . import app
 from .utils import get_db, get_now, allowed_file, ALLOWED_EXTENSIONS, UPLOAD_FOLDER
+from .tasks import process_image, celery_app
 from .models import (
     ADMIN_EMAIL, get_messages, get_hot_posts, get_post_detail,
     toggle_like, search_messages, save_message, delete_message,
@@ -417,6 +418,7 @@ def api_image_generate():
 # ===== 图片上传 =====
 @app.route("/api/upload", methods=["POST"])
 def api_upload():
+    """上传图片（异步：优先走 Celery，没启动就同步处理）"""
     email = session.get("email")
     if not email:
         return jsonify({"error": "未登录"}), 401
@@ -429,12 +431,26 @@ def api_upload():
         return jsonify({"error": "不支持的图片格式"}), 400
 
     try:
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        file_bytes = file.read()
+
+        # 尝试走 Celery 异步（用户秒回，后台处理）
+        if oss_bucket:
+            try:
+                task = process_image.delay(
+                    file_bytes, file.filename,
+                    email.split("@")[0],
+                    OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET,
+                    OSS_BUCKET_NAME, OSS_ENDPOINT
+                )
+                # 异步：秒回 task_id，前端可以轮询进度
+                return jsonify({"task_id": task.id, "status": "processing", "async": True})
+            except Exception:
+                pass  # Celery 没启动，降级为同步处理
+
+        # 降级：同步处理（Celery 没开，或者没配 OSS）
+        img = Image.open(io.BytesIO(file_bytes))
         ext = file.filename.rsplit(".", 1)[1].lower() if "." in file.filename else "jpg"
         is_png = ext == "png"
-        safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.{ext}"
-
-        img = Image.open(file)
         if ext == "png" and img.mode == "RGBA":
             img = img.convert("RGBA")
         elif img.mode in ("RGBA", "P"):
@@ -445,15 +461,15 @@ def api_upload():
             new_size = (int(img.width * ratio), int(img.height * ratio))
             img = img.resize(new_size, Image.LANCZOS)
 
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.{ext}"
+
         if oss_bucket:
             buffer = io.BytesIO()
             save_format = "PNG" if is_png else "JPEG"
-            kw = {"format": save_format}
-            if save_format == "PNG":
-                kw["optimize"] = True
-            else:
+            kw = {"format": save_format, "optimize": True}
+            if save_format == "JPEG":
                 kw["quality"] = 80
-                kw["optimize"] = True
             img.save(buffer, **kw)
             buffer.seek(0)
             oss_bucket.put_object(safe_name, buffer)
@@ -463,19 +479,28 @@ def api_upload():
             filepath = os.path.join(UPLOAD_FOLDER, safe_name)
             save_format = "PNG" if is_png else "JPEG"
             kw = {"format": save_format}
-            if save_format == "PNG":
-                kw["optimize"] = True
-            else:
+            if save_format == "JPEG":
                 kw["quality"] = 80
-                kw["optimize"] = True
+            kw["optimize"] = True
             img.save(filepath, **kw)
             url = f"/static/uploads/{safe_name}"
 
-        return jsonify({"url": url, "filename": safe_name, "oss": oss_bucket is not None})
+        return jsonify({"url": url, "filename": safe_name, "oss": oss_bucket is not None, "async": False})
 
     except Exception as e:
         import traceback
         return jsonify({"error": f"上传失败：{str(e)}", "detail": traceback.format_exc()}), 500
+
+
+@app.route("/api/task/<task_id>")
+def get_task_status(task_id):
+    """查询异步任务状态（前端轮询用）"""
+    task = process_image.AsyncResult(task_id)
+    if task.failed():
+        return jsonify({"status": "failed", "error": str(task.result)})
+    if task.ready():
+        return jsonify({"status": "done", "result": task.result})
+    return jsonify({"status": "processing"})
 
 
 # ===== 静态文件缓存头 =====
