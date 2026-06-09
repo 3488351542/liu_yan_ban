@@ -113,6 +113,12 @@
                 {% endif %}
             </div>
             <div class="hot-info">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;flex-shrink:0;overflow:hidden;">
+                        {% if p.author_avatar %}<img src="{{ p.author_avatar }}" style="width:100%;height:100%;object-fit:cover;">{% else %}{{ p.username[:1] }}{% endif %}
+                    </div>
+                    <span style="font-size:12px;font-weight:600;color:#333;">{{ p.username }}</span>
+                </div>
                 <div class="hot-text">{{ p.content }}</div>
                 {% if p.image_url %}
                 <div style="margin-top:8px;">
@@ -120,7 +126,6 @@
                 </div>
                 {% endif %}
                 <div class="hot-meta">
-                    <span>{{ p.username }}</span>
                     <span class="cat-tag cat-tag-{{ p.category }}">
                         {% if p.category == 'message' %}留言板
                         {% elif p.category == 'daily' %}日常投稿
