@@ -7,7 +7,7 @@ EXPOSE 5000
 # Railway 会通过 CELERY_WORKER 环境变量决定启动哪个
 # 默认启动 Flask Web 服务
 CMD if [ "$CELERY_WORKER" = "1" ]; then \
-    celery -A app.tasks.celery_app worker -l info -P eventlet; \
+    celery -A app.tasks.celery_app worker -l info; \
   else \
     gunicorn app:app -b 0.0.0.0:5000 -w 4 --threads 4 \
     --limit-request-field_size 16380 --limit-request-line 16380 --timeout 600; \
