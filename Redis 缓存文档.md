@@ -91,10 +91,6 @@ def get_xxx(param1, param2, email=None):
             ...
     return data
 ```
-    posts = _get_messages_raw(category, page, per_page)
-    # 补用户状态
-    return posts
-```
 
 ---
 

@@ -76,7 +76,6 @@ else:
 
 app = Flask(__name__)
 app.secret_key = "liu-yan-ban-2024-xue-xi-xiang-mu-666"
-app.config["SESSION_PERMANENT"] = False
 
 # DeepSeek API 地址
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
@@ -1447,11 +1446,16 @@ def api_upload():
     try:
         # 生成唯一文件名
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.jpg"
+        ext = file.filename.rsplit(".", 1)[1].lower() if "." in file.filename else "jpg"
+        is_png = ext == "png"
+        safe_name = f"{email.split('@')[0]}_{timestamp}_{os.urandom(4).hex()}.{ext}"
 
-        # 压缩图片：最大 1200px，JPEG 质量 80%
+        # 压缩图片：最大 1200px
         img = Image.open(file)
-        if img.mode in ("RGBA", "P"):
+        if ext == "png" and img.mode == "RGBA":
+            # PNG 保留透明背景，不转 RGB
+            img = img.convert("RGBA") if img.mode != "RGBA" else img
+        elif img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
         max_size = 1200
         if img.width > max_size or img.height > max_size:
@@ -1462,14 +1466,28 @@ def api_upload():
         # 上传到 OSS（如果配置了）或本地
         if oss_bucket:
             buffer = io.BytesIO()
-            img.save(buffer, "JPEG", quality=80, optimize=True)
+            save_format = "PNG" if is_png else "JPEG"
+            save_kwargs = {"format": save_format}
+            if save_format == "PNG":
+                save_kwargs["optimize"] = True
+            else:
+                save_kwargs["quality"] = 80
+                save_kwargs["optimize"] = True
+            img.save(buffer, **save_kwargs)
             buffer.seek(0)
             oss_bucket.put_object(safe_name, buffer)
             url = f"https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}/{safe_name}"
         else:
             os.makedirs(UPLOAD_FOLDER, exist_ok=True)
             filepath = os.path.join(UPLOAD_FOLDER, safe_name)
-            img.save(filepath, "JPEG", quality=80, optimize=True)
+            save_format = "PNG" if is_png else "JPEG"
+            kw = {"format": save_format}
+            if save_format == "PNG":
+                kw["optimize"] = True
+            else:
+                kw["quality"] = 80
+                kw["optimize"] = True
+            img.save(filepath, **kw)
             url = f"/static/uploads/{safe_name}"
 
         return jsonify({"url": url, "filename": safe_name, "oss": oss_bucket is not None})
