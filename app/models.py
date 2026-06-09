@@ -131,7 +131,7 @@ def init_db():
 @cached(60)
 def _get_messages_raw(category, page, per_page):
     """帖子列表原始数据（缓存60秒）"""
-    conn = get_db()
+    conn = get_db(read_only=True)
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     offset = (page - 1) * per_page
     if category and category != "latest":
@@ -167,7 +167,7 @@ def get_messages(category=None, page=1, per_page=20, email=None):
     for msg in raw:
         m = dict(msg)
         if email:
-            conn = get_db()
+            conn = get_db(read_only=True)
             cur = conn.cursor()
             cur.execute("select id from likes where user_email=%s and message_id=%s", [email, m["id"]])
             m["liked"] = cur.fetchone() is not None
@@ -256,7 +256,7 @@ def get_hot_posts(email=None, limit=10):
     """获取今日热榜（缓存 + 补状态）"""
     posts = _get_hot_posts_raw(limit)
     if email:
-        conn = get_db()
+        conn = get_db(read_only=True)
         cursor = conn.cursor()
         for p in posts:
             cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, p["id"]])
@@ -296,7 +296,7 @@ def get_post_detail(post_id, email=None):
     if not post:
         return None
     if email:
-        conn = get_db()
+        conn = get_db(read_only=True)
         cursor = conn.cursor()
         cursor.execute("select id from likes where user_email = %s and message_id = %s", [email, post_id])
         post["liked"] = cursor.fetchone() is not None

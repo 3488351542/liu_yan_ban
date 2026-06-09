@@ -70,7 +70,7 @@ def api_search():
     messages = search_messages(q, page)
     for msg in messages:
         if email:
-            conn = get_db()
+            conn = get_db(read_only=True)
             cur = conn.cursor()
             cur.execute("select id from likes where user_email=%s and message_id=%s", [email, msg["id"]])
             msg["liked"] = cur.fetchone() is not None
