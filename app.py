@@ -117,9 +117,9 @@ def init_db_pool():
     global db_pool
     database_url = os.environ.get("DATABASE_URL")
     if database_url:
-        db_pool = psycopg2.pool.ThreadedConnectionPool(2, 10, database_url)
+        db_pool = psycopg2.pool.ThreadedConnectionPool(2, 50, database_url)
     else:
-        db_pool = psycopg2.pool.ThreadedConnectionPool(2, 10,
+        db_pool = psycopg2.pool.ThreadedConnectionPool(2, 50,
             host="localhost", port=5432, database="message_board",
             user="postgres", password="123456"
         )
